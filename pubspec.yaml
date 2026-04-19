@@ -1,0 +1,83 @@
+name: floodcare_mobile
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  
+  flutter_svg: ^2.2.4
+  lottie: ^3.3.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  
+  flutter_lints: ^6.0.0
+
+
+flutter:
+
+ 
+  uses-material-design: true
+
+  
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/animations/
+    
+
+  
+  fonts:
+    - family: interregular
+      fonts:
+        - asset: assets/fonts/InterRegular.otf
+          weight: 400
+    - family: intermedium
+      fonts:
+        - asset: assets/fonts/InterMedium.otf
+          weight: 500
+    - family: interbold
+      fonts:
+        - asset: assets/fonts/InterMedium.otf
+          weight: 600
+    - family: intersemibold
+      fonts:
+        - asset: assets/fonts/InterMedium.otf
+          weight: 700
+    - family: jakartabold
+      fonts:
+        - asset: assets/fonts/jakartabold.ttf
+          weight: 600
+    - family: jakartasemibold
+      fonts:
+        - asset: assets/fonts/jakartasemibold.ttf
+          weight: 700
+    - family: jakartaextrabold
+      fonts:
+        - asset: assets/fonts/jakartaextrabold.ttf
+          weight: 800
+ 

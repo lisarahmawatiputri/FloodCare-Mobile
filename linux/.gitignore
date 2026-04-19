@@ -1,0 +1,94 @@
+flutter/ephemeral
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+.idea/
+.vscode/
+
+# Flutter/Dart/Pub
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+.pub-cache/
+build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Android / Gradle
+/android/.gradle/
+/android/captures/
+local.properties
+**/android/local.properties
+.gradle/
+**/key.properties
+**/*.jks
+**/*.keystore
+
+# iOS
+**/ios/.symlinks/
+**/ios/Flutter/.last_build_id
+**/ios/Pods/
+**/ios/Runner.xcworkspace/
+**/ios/DerivedData/
+*.mode1v3
+*.mode2v3
+*.moved-aside
+*.pbxuser
+*.perspectivev3
+!default.pbxuser
+!default.mode1v3
+!default.mode2v3
+!default.perspectivev3
+
+# macOS
+**/macos/Flutter/ephemeral/
+**/macos/Pods/
+**/macos/DerivedData/
+
+# Linux
+**/linux/flutter/ephemeral/
+
+# Windows
+**/windows/flutter/ephemeral/
+
+# Fuchsia
+**/fuchsia/.packages
+**/fuchsia/build/
+
+# Coverage
+coverage/
+lcov.info
+
+# Testing
+test_driver/.dart_tool/
+
+# Firebase / env / secrets
+google-services.json
+GoogleService-Info.plist
+.env
+.env.*
+*.pem
+*.p12
+
+# Crash / temp
+*.tmp
+*.temp
