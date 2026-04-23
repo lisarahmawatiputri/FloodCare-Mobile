@@ -1,5 +1,5 @@
 import 'package:floodcare_mobile/utils/colors.dart';
-import 'package:floodcare_mobile/views/login.dart';
+import 'package:floodcare_mobile/views/auth/login_view.dart';
 import 'package:flutter/material.dart';
 
 List onboardingData = [

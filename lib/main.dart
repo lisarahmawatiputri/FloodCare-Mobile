@@ -1,4 +1,4 @@
-import 'package:floodcare_mobile/views/splash.dart';
+import 'package:floodcare_mobile/views/splash/splash_view.dart';
 import 'package:flutter/material.dart';
 
 void main() {

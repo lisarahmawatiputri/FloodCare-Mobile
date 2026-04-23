@@ -1,5 +1,6 @@
 import 'package:floodcare_mobile/utils/colors.dart';
-import 'package:floodcare_mobile/views/login.dart';
+import 'package:floodcare_mobile/views/auth/login_view.dart';
+import 'package:floodcare_mobile/views/auth/verification_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -28,7 +29,7 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               InkWell(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(1000),
                   onTap: () {
                     Navigator.pushReplacement(
                       context,
@@ -38,7 +39,7 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
                     );
                   },
                   child: Padding(
-                    padding: const EdgeInsets.only(right: 50),
+                    padding: const EdgeInsets.only(right: 1),
                     child: SvgPicture.asset('assets/icons/BackAuth.svg'),
                   ),
                 ),
@@ -132,7 +133,11 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
              
               const SizedBox(height: 36),
               GestureDetector(
-                onTap: () {},
+                onTap: () {
+                 Navigator.push(
+                context, MaterialPageRoute(
+                  builder: (context) => VerificationView(),),);
+                },
                 child: Container(
                   height: 60,
                   width: double.infinity,
@@ -147,6 +152,7 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
                       style: TextStyle(
                         fontFamily: 'interbold',
                         fontSize: 15,
+                        fontWeight: FontWeight(800),
                         color: Colors.white,
                       ),
                     ),

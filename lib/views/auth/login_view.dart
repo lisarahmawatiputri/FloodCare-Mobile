@@ -1,9 +1,11 @@
+import 'package:floodcare_mobile/services/auth_service.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
-import 'package:floodcare_mobile/views/onboarding.dart';
+import 'package:floodcare_mobile/views/dashboard/dashboard_view.dart';
+import 'package:floodcare_mobile/views/onboarding/onboarding_view.dart';
 import 'package:flutter/material.dart';
-import 'package:floodcare_mobile/views/forgetpassword.dart';
+import 'package:floodcare_mobile/views/auth/forget_password_view.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:floodcare_mobile/views/register.dart';
+import 'package:floodcare_mobile/views/auth/register_view.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -14,6 +16,67 @@ class LoginView extends StatefulWidget {
 
 class _LoginViewState extends State<LoginView> {
   bool isHide = true;
+  bool isLoading = false;
+
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  final AuthService authService = AuthService();
+
+  Future<void> handleLogin() async {
+    FocusScope.of(context).unfocus();
+
+    if (emailController.text.trim().isEmpty ||
+        passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email dan password wajib diisi')),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      await authService.login(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const DashboardView(),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,8 +92,8 @@ class _LoginViewState extends State<LoginView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-             InkWell(
-                borderRadius: BorderRadius.circular(20),
+              InkWell(
+                borderRadius: BorderRadius.circular(1000),
                 onTap: () {
                   Navigator.pushReplacement(
                     context,
@@ -40,7 +103,7 @@ class _LoginViewState extends State<LoginView> {
                   );
                 },
                 child: Padding(
-                  padding: const EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.all(1),
                   child: SvgPicture.asset('assets/icons/BackAuth.svg'),
                 ),
               ),
@@ -74,6 +137,8 @@ class _LoginViewState extends State<LoginView> {
               ),
               const SizedBox(height: 8),
               TextFormField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
                 style: const TextStyle(
                   fontFamily: 'interregular',
                   fontSize: 14,
@@ -135,6 +200,7 @@ class _LoginViewState extends State<LoginView> {
               ),
               const SizedBox(height: 8),
               TextFormField(
+                controller: passwordController,
                 obscureText: isHide,
                 style: const TextStyle(
                   fontFamily: 'interregular',
@@ -210,7 +276,7 @@ class _LoginViewState extends State<LoginView> {
               ),
               const SizedBox(height: 36),
               GestureDetector(
-                onTap: () {},
+                onTap: isLoading ? null : handleLogin,
                 child: Container(
                   height: 60,
                   width: double.infinity,
@@ -218,44 +284,45 @@ class _LoginViewState extends State<LoginView> {
                     gradient: orangeGradient,
                     borderRadius: BorderRadius.circular(30),
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Text(
-                      "Sign In",
+                      isLoading ? "Loading..." : "Sign In",
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: 'interbold',
                         fontSize: 15,
+                        fontWeight: FontWeight.w800,
                         color: Colors.white,
                       ),
                     ),
                   ),
                 ),
               ),
-             const SizedBox(height: 25),
-                Center(
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ForgetPasswordView(),
-                        ),
-                      );
-                    },
-                    child: ShaderMask(
-                      shaderCallback: (bounds) =>
-                          orangeGradient.createShader(bounds),
-                      child: const Text(
-                        "Forgot the Password",
-                        style: TextStyle(
-                          fontFamily: 'intermedium',
-                          fontSize: 14,
-                          color: Colors.white,
-                        ),
+              const SizedBox(height: 25),
+              Center(
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ForgetPasswordView(),
+                      ),
+                    );
+                  },
+                  child: ShaderMask(
+                    shaderCallback: (bounds) =>
+                        orangeGradient.createShader(bounds),
+                    child: const Text(
+                      "Forgot the Password",
+                      style: TextStyle(
+                        fontFamily: 'intermedium',
+                        fontSize: 14,
+                        color: Colors.white,
                       ),
                     ),
                   ),
                 ),
+              ),
               const SizedBox(height: 40),
               Row(
                 children: const [
@@ -313,12 +380,12 @@ class _LoginViewState extends State<LoginView> {
                       color: Colors.black,
                     ),
                   ),
-                 GestureDetector(
+                  GestureDetector(
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => RegisterView(),
+                          builder: (context) => const RegisterView(),
                         ),
                       );
                     },
