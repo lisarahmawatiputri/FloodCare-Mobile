@@ -1,3 +1,5 @@
+import 'package:floodcare_mobile/views/dashboard/dashboard_view.dart';
+import 'package:floodcare_mobile/views/dashboard/donasi_view.dart';
 import 'package:floodcare_mobile/views/splash/splash_view.dart';
 import 'package:flutter/material.dart';
 
@@ -15,7 +17,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.transparent)),
-      home: const SplashView(),
+      home: const DashboardView(),
     );
   }
 }

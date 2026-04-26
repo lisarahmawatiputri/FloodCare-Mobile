@@ -1,3 +1,4 @@
+import 'package:floodcare_mobile/services/auth_service.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
 import 'package:floodcare_mobile/views/auth/forget_password_view.dart';
 import 'package:floodcare_mobile/views/auth/reset_password_view.dart';
@@ -6,14 +7,111 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class VerificationView extends StatefulWidget {
-  const VerificationView({super.key});
+  final String email;
+
+  const VerificationView({super.key, required this.email});
 
   @override
   State<VerificationView> createState() => _VerificationViewState();
 }
 
 class _VerificationViewState extends State<VerificationView> {
-  bool isHide = true;
+  final AuthService authService = AuthService();
+
+  final otpControllers = List.generate(4, (_) => TextEditingController());
+
+  bool isLoading = false;
+
+  String getOtp() {
+    return otpControllers.map((e) => e.text).join();
+  }
+
+  Future<void> handleVerifyOtp() async {
+    FocusScope.of(context).unfocus();
+
+    final otp = getOtp();
+
+    if (otp.length != 4) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('OTP harus 4 digit')),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ResetPasswordView(
+            email: widget.email,
+            otp: otp,
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Widget otpBox(int index) {
+    return SizedBox(
+      height: 64.88,
+      width: 64.88,
+      child: TextField(
+        controller: otpControllers[index],
+        onChanged: (value) {
+          if (value.length == 1 && index < 3) {
+            FocusScope.of(context).nextFocus();
+          }
+        },
+        style: const TextStyle(
+          fontFamily: 'intermedium',
+          fontSize: 25,
+          color: Colors.black,
+        ),
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        decoration: InputDecoration(
+          fillColor: Colors.transparent,
+          filled: true,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.81),
+            borderSide: BorderSide(color: grayhint, width: 1.3),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.81),
+            borderSide: BorderSide(color: grayhint, width: 1.8),
+          ),
+        ),
+        inputFormatters: [
+          LengthLimitingTextInputFormatter(1),
+          FilteringTextInputFormatter.digitsOnly,
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    for (var c in otpControllers) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,7 +133,7 @@ class _VerificationViewState extends State<VerificationView> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ForgetPasswordView(),
+                      builder: (context) => const ForgetPasswordView(),
                     ),
                   );
                 },
@@ -44,10 +142,12 @@ class _VerificationViewState extends State<VerificationView> {
                   child: SvgPicture.asset('assets/icons/BackAuth.svg'),
                 ),
               ),
+
               const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40),
-                child: const Text(
+
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 40),
+                child: Text(
                   'Verification Code',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -57,11 +157,13 @@ class _VerificationViewState extends State<VerificationView> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 50),
-                child: const Text(
-                  'Enter the verification code to confirm your identity.',
+
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 50),
+                child: Text(
+                  'Enter the verification code sent to your email.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'interregular',
@@ -70,156 +172,18 @@ class _VerificationViewState extends State<VerificationView> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 44),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  SizedBox(
-                    height: 64.88,
-                    width: 64.88,
-                    child: TextField(
-                      onChanged: (value) {
-                        if (value.length == 1) {
-                          FocusScope.of(context).nextFocus();
-                        }
-                      },
-                      style: TextStyle(
-                        fontFamily: 'intermedium',
-                        fontSize: 25,
-                        color: Colors.black,
-                      ),
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      decoration: InputDecoration(
-                        fillColor: Colors.transparent,
-                        filled: true,
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.81),
-                          borderSide: BorderSide(color: grayhint, width: 1.3),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.81),
-                          borderSide: BorderSide(color: grayhint, width: 1.8),
-                        ),
-                      ),
-                      inputFormatters: [
-                        LengthLimitingTextInputFormatter(1),
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    height: 64.88,
-                    width: 64.88,
-                    child: TextField(
-                      onChanged: (value) {
-                        if (value.length == 1) {
-                          FocusScope.of(context).nextFocus();
-                        }
-                      },
-                      style: TextStyle(
-                        fontFamily: 'intermedium',
-                        fontSize: 25,
-                        color: Colors.black,
-                      ),
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      decoration: InputDecoration(
-                        fillColor: Colors.transparent,
-                        filled: true,
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.81),
-                          borderSide: BorderSide(color: grayhint, width: 1.3),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.81),
-                          borderSide: BorderSide(color: grayhint, width: 1.8),
-                        ),
-                      ),
-                      inputFormatters: [
-                        LengthLimitingTextInputFormatter(1),
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    height: 64.88,
-                    width: 64.88,
-                    child: TextField(
-                      onChanged: (value) {
-                        if (value.length == 1) {
-                          FocusScope.of(context).nextFocus();
-                        }
-                      },
-                      style: TextStyle(
-                        fontFamily: 'intermedium',
-                        fontSize: 25,
-                        color: Colors.black,
-                      ),
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      decoration: InputDecoration(
-                        fillColor: Colors.transparent,
-                        filled: true,
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.81),
-                          borderSide: BorderSide(color: grayhint, width: 1.3),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.81),
-                          borderSide: BorderSide(color: grayhint, width: 1.8),
-                        ),
-                      ),
-                      inputFormatters: [
-                        LengthLimitingTextInputFormatter(1),
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    height: 64.88,
-                    width: 64.88,
-                    child: TextField(
-                      onChanged: (value) {
-                        if (value.length == 1) {
-                          FocusScope.of(context).nextFocus();
-                        }
-                      },
-                      style: TextStyle(
-                        fontFamily: 'intermedium',
-                        fontSize: 25,
-                        color: Colors.black,
-                      ),
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      decoration: InputDecoration(
-                        fillColor: Colors.transparent,
-                        filled: true,
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.81),
-                          borderSide: BorderSide(color: grayhint, width: 1.3),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.81),
-                          borderSide: BorderSide(color: grayhint, width: 1.8),
-                        ),
-                      ),
-                      inputFormatters: [
-                        LengthLimitingTextInputFormatter(1),
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                    ),
-                  ),
-                ],
+                children: List.generate(4, otpBox),
               ),
+
               const SizedBox(height: 36),
+
               GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ResetPasswordView()),
-                  );
-                },
+                onTap: isLoading ? null : handleVerifyOtp,
                 child: Container(
                   height: 60,
                   width: double.infinity,
@@ -227,51 +191,54 @@ class _VerificationViewState extends State<VerificationView> {
                     gradient: orangeGradient,
                     borderRadius: BorderRadius.circular(30),
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Text(
-                      "Send Code",
+                      isLoading ? "Checking..." : "Verify OTP",
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: 'interbold',
                         fontSize: 15,
                         color: Colors.white,
-                        fontWeight: FontWeight(800),
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
                 ),
               ),
+
               const SizedBox(height: 16),
-              Padding(
-                  padding: const EdgeInsets.only(bottom: 50),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Didn't get the code?",
-                        style: TextStyle(
-                          fontFamily: 'intermedium',
-                          fontSize: 12,
-                          color: Colors.black,
-                        ),
-                      ),
-                      const SizedBox(width: 6), 
-                      GestureDetector(
-                        onTap: () {
-                          // TODO: resend OTP logic
-                        },
-                        child: Text(
-                          "Resend",
-                          style: TextStyle(
-                            fontFamily: 'intermedium',
-                            fontSize: 12,
-                            color: lightorange,
-                          ),
-                        ),
-                      ),
-                    ],
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    "Didn't get the code?",
+                    style: TextStyle(
+                      fontFamily: 'intermedium',
+                      fontSize: 12,
+                      color: Colors.black,
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: () async {
+                      await authService.forgotPassword(email: widget.email);
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("OTP dikirim ulang")),
+                      );
+                    },
+                    child: Text(
+                      "Resend",
+                      style: TextStyle(
+                        fontFamily: 'intermedium',
+                        fontSize: 12,
+                        color: lightorange,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),

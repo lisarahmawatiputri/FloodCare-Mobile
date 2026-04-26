@@ -366,52 +366,52 @@ class _RegisterViewState extends State<RegisterView> {
                 ),
               ),
 
+              // const SizedBox(height: 30),
+              // Row(
+              //   children: const [
+              //     Expanded(child: Divider()),
+              //     Padding(
+              //       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              //       child: Text(
+              //         'OR CONTINUE WITH',
+              //         textAlign: TextAlign.center,
+              //         style: TextStyle(
+              //           fontFamily: 'intermedium',
+              //           fontSize: 12,
+              //           color: Colors.brown,
+              //         ),
+              //       ),
+              //     ),
+              //     Expanded(child: Divider()),
+              //   ],
+              // ),
+              // const SizedBox(height: 32),
+              // GestureDetector(
+              //   onTap: () {},
+              //   child: Container(
+              //     padding: const EdgeInsets.symmetric(vertical: 13.5),
+              //     color: Colors.transparent,
+              //     child: Center(
+              //       child: Row(
+              //         mainAxisAlignment: MainAxisAlignment.center,
+              //         children: [
+              //           SvgPicture.asset('assets/icons/Google.svg'),
+              //           const SizedBox(width: 11),
+              //           Text(
+              //             "Sign In with Google",
+              //             textAlign: TextAlign.center,
+              //             style: TextStyle(
+              //               fontFamily: 'intersemibold',
+              //               fontSize: 16,
+              //               color: bluegoogletext,
+              //             ),
+              //           ),
+              //         ],
+              //       ),
+              //     ),
+              //   ),
+              // ),
               const SizedBox(height: 30),
-              Row(
-                children: const [
-                  Expanded(child: Divider()),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    child: Text(
-                      'OR CONTINUE WITH',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'intermedium',
-                        fontSize: 12,
-                        color: Colors.brown,
-                      ),
-                    ),
-                  ),
-                  Expanded(child: Divider()),
-                ],
-              ),
-              const SizedBox(height: 32),
-              GestureDetector(
-                onTap: () {},
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 13.5),
-                  color: Colors.transparent,
-                  child: Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SvgPicture.asset('assets/icons/Google.svg'),
-                        const SizedBox(width: 11),
-                        Text(
-                          "Sign In with Google",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontFamily: 'intersemibold',
-                            fontSize: 16,
-                            color: bluegoogletext,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 40),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

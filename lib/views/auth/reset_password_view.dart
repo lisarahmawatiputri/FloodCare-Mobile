@@ -1,251 +1,197 @@
+import 'package:floodcare_mobile/services/auth_service.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
-import 'package:floodcare_mobile/views/auth/verification_view.dart';
+import 'package:floodcare_mobile/views/auth/login_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
 class ResetPasswordView extends StatefulWidget {
-  const ResetPasswordView({super.key});
+  final String email;
+  final String otp;
+
+  const ResetPasswordView({
+    super.key,
+    required this.email,
+    required this.otp,
+  });
 
   @override
   State<ResetPasswordView> createState() => _ResetPasswordViewState();
 }
 
 class _ResetPasswordViewState extends State<ResetPasswordView> {
-    bool isHide = true;
+  final passwordController = TextEditingController();
+  final confirmController = TextEditingController();
+  final AuthService authService = AuthService();
+
+  bool isHide = true;
+  bool isLoading = false;
+
+  Future<void> handleResetPassword() async {
+    FocusScope.of(context).unfocus();
+
+    final password = passwordController.text;
+    final confirm = confirmController.text;
+
+    if (password.isEmpty || confirm.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Semua field wajib diisi')),
+      );
+      return;
+    }
+
+    if (password.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password minimal 8 karakter')),
+      );
+      return;
+    }
+
+    if (password != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password tidak sama')),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final data = await authService.resetPassword(
+        email: widget.email,
+        otp: widget.otp,
+        password: password,
+        passwordConfirmation: confirm,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(data['message'] ?? 'Password berhasil diubah')),
+      );
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginView()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Widget passwordField({
+    required TextEditingController controller,
+    required String hint,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: isHide,
+      style: const TextStyle(
+        fontFamily: 'interregular',
+        fontSize: 14,
+        color: Colors.black,
+      ),
+      decoration: InputDecoration(
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 18,
+          horizontal: 20,
+        ),
+        hintText: hint,
+        hintStyle: TextStyle(
+          fontFamily: 'interregular',
+          fontSize: 14,
+          color: grayhint,
+        ),
+        prefixIcon: Padding(
+          padding: const EdgeInsets.only(left: 23, right: 11),
+          child: SvgPicture.asset(
+            'assets/icons/Password.svg',
+            width: 20,
+            height: 20,
+            colorFilter: const ColorFilter.mode(
+              Colors.grey,
+              BlendMode.srcIn,
+            ),
+          ),
+        ),
+        suffixIcon: IconButton(
+          onPressed: () {
+            setState(() {
+              isHide = !isHide;
+            });
+          },
+          icon: SvgPicture.asset(
+            isHide
+                ? 'assets/icons/Eyeoff.svg'
+                : 'assets/icons/Eyeon.svg',
+            width: 20,
+            height: 17,
+          ),
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    passwordController.dispose();
+    confirmController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.only(
-            top: 40,
-            left: 27,
-            right: 27,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          ),
+          padding: const EdgeInsets.all(27),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              InkWell(
-                  borderRadius: BorderRadius.circular(1000),
-                  onTap: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => VerificationView(),
-                      ),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 1),
-                    child: SvgPicture.asset('assets/icons/BackAuth.svg'),
-                  ),
+              const SizedBox(height: 40),
+
+              const Text(
+                'Reset Password',
+                style: TextStyle(
+                  fontFamily: 'jakartabold',
+                  fontSize: 30,
                 ),
+              ),
+
+              const SizedBox(height: 30),
+
+              passwordField(
+                controller: passwordController,
+                hint: "Enter your password",
+              ),
+
               const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 50),
-                child: const Text(
-                  'Reset Password',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'jakartabold',
-                    fontSize: 30,
-                    color: Colors.black,
-                  ),
-                ),
+
+              passwordField(
+                controller: confirmController,
+                hint: "Confirm your password",
               ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 50),
-                child: const Text(
-                  'Set a strong password to secure access. Always stay safe..',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'interregular',
-                    fontSize: 14,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 19),
-              Text(
-                "Password",
-                style: TextStyle(
-                  fontFamily: "interbold",
-                  fontSize: 12,
-                  color: bluetext,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                obscureText: isHide,
-                style: const TextStyle(
-                  fontFamily: 'interregular',
-                  fontSize: 14,
-                  color: Colors.black,
-                ),
-                decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 18,
-                    horizontal: 20,
-                  ),
-                  fillColor: Colors.transparent,
-                  filled: true,
-                  hintText: "Enter your password",
-                  hintStyle: TextStyle(
-                    fontFamily: 'interregular',
-                    fontSize: 14,
-                    color: grayhint,
-                  ),
-                  prefixIcon: Padding(
-                    padding: const EdgeInsets.only(left: 23, right: 11),
-                    child: SvgPicture.asset(
-                      'assets/icons/Password.svg',
-                      width: 20,
-                      height: 20,
-                      colorFilter: const ColorFilter.mode(
-                        Colors.grey,
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  ),
-                  suffixIcon: IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 40,
-                      minHeight: 40,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        isHide = !isHide;
-                      });
-                    },
-                    icon: SvgPicture.asset(
-                      isHide
-                          ? 'assets/icons/Eyeoff.svg'
-                          : 'assets/icons/Eyeon.svg',
-                      width: 20,
-                      height: 17,
-                      colorFilter: const ColorFilter.mode(
-                        Colors.grey,
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: const BorderSide(
-                      color: Colors.black,
-                      width: 2,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: const BorderSide(
-                      color: Colors.grey,
-                      width: 1,
-                    ),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 19),
-              Text(
-                "Confirm Password",
-                style: TextStyle(
-                  fontFamily: "interbold",
-                  fontSize: 12,
-                  color: bluetext,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                obscureText: isHide,
-                style: const TextStyle(
-                  fontFamily: 'interregular',
-                  fontSize: 14,
-                  color: Colors.black,
-                ),
-                decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 18,
-                    horizontal: 20,
-                  ),
-                  fillColor: Colors.transparent,
-                  filled: true,
-                  hintText: "Enter your password",
-                  hintStyle: TextStyle(
-                    fontFamily: 'interregular',
-                    fontSize: 14,
-                    color: grayhint,
-                  ),
-                  prefixIcon: Padding(
-                    padding: const EdgeInsets.only(left: 23, right: 11),
-                    child: SvgPicture.asset(
-                      'assets/icons/Password.svg',
-                      width: 20,
-                      height: 20,
-                      colorFilter: const ColorFilter.mode(
-                        Colors.grey,
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  ),
-                  suffixIcon: IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 40,
-                      minHeight: 40,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        isHide = !isHide;
-                      });
-                    },
-                    icon: SvgPicture.asset(
-                      isHide
-                          ? 'assets/icons/Eyeoff.svg'
-                          : 'assets/icons/Eyeon.svg',
-                      width: 20,
-                      height: 17,
-                      colorFilter: const ColorFilter.mode(
-                        Colors.grey,
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: const BorderSide(
-                      color: Colors.black,
-                      width: 2,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: const BorderSide(
-                      color: Colors.grey,
-                      width: 1,
-                    ),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-              ),
-             
+
               const SizedBox(height: 36),
+
               GestureDetector(
-                // onTap: () {
-                //  Navigator.push(
-                // context, MaterialPageRoute(
-                //   builder: (context) => VerificationView(),),);
-                // },
+                onTap: isLoading ? null : handleResetPassword,
                 child: Container(
                   height: 60,
                   width: double.infinity,
@@ -253,14 +199,12 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                     gradient: orangeGradient,
                     borderRadius: BorderRadius.circular(30),
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Text(
-                      "Continue",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
+                      isLoading ? "Loading..." : "Continue",
+                      style: const TextStyle(
                         fontFamily: 'interbold',
                         fontSize: 15,
-                        fontWeight: FontWeight(800),
                         color: Colors.white,
                       ),
                     ),
