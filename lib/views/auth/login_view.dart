@@ -69,7 +69,42 @@ class _LoginViewState extends State<LoginView> {
       }
     }
   }
+  Future<void> handleGoogleLogin() async {
+  FocusScope.of(context).unfocus();
 
+  setState(() {
+    isLoading = true;
+  });
+
+  try {
+    await authService.loginWithGoogle();
+
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const DashboardView(),
+      ),
+    );
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          e.toString().replaceFirst('Exception: ', ''),
+        ),
+      ),
+    );
+  } finally {
+    if (mounted) {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+}
   @override
   void dispose() {
     emailController.dispose();
@@ -323,7 +358,7 @@ class _LoginViewState extends State<LoginView> {
                   ),
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 30),
               Row(
                 children: const [
                   Expanded(child: Divider()),
@@ -342,9 +377,9 @@ class _LoginViewState extends State<LoginView> {
                   Expanded(child: Divider()),
                 ],
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 30),
               GestureDetector(
-                onTap: () {},
+                onTap: isLoading ? null : handleGoogleLogin,
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 13.5),
                   color: Colors.transparent,
@@ -368,7 +403,7 @@ class _LoginViewState extends State<LoginView> {
                   ),
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 50),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

@@ -1,3 +1,4 @@
+import 'package:floodcare_mobile/services/auth_service.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
 import 'package:floodcare_mobile/views/auth/login_view.dart';
 import 'package:floodcare_mobile/views/auth/verification_view.dart';
@@ -12,7 +13,73 @@ class ForgetPasswordView extends StatefulWidget {
 }
 
 class _ForgetPasswordViewState extends State<ForgetPasswordView> {
-  bool isHide = true;
+  final emailController = TextEditingController();
+  final AuthService authService = AuthService();
+
+  bool isLoading = false;
+
+  Future<void> handleForgotPassword() async {
+    FocusScope.of(context).unfocus();
+
+    final email = emailController.text.trim();
+
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email wajib diisi')),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final data = await authService.forgotPassword(email: email);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            data['message'] ?? 'Kode OTP berhasil dikirim ke email',
+          ),
+        ),
+      );
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => VerificationView(
+            email: email,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,24 +96,26 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               InkWell(
-                  borderRadius: BorderRadius.circular(1000),
-                  onTap: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => LoginView(),
-                      ),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 1),
-                    child: SvgPicture.asset('assets/icons/BackAuth.svg'),
-                  ),
+                borderRadius: BorderRadius.circular(1000),
+                onTap: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LoginView(),
+                    ),
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 1),
+                  child: SvgPicture.asset('assets/icons/BackAuth.svg'),
                 ),
+              ),
+
               const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 50),
-                child: const Text(
+
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 50),
+                child: Text(
                   'Reset Password',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -56,10 +125,12 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 50),
-                child: const Text(
+
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 50),
+                child: Text(
                   'Reset your password quickly and securely to regain access.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -69,7 +140,9 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 44),
+
               Text(
                 "Email Address",
                 style: TextStyle(
@@ -79,8 +152,12 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+
               const SizedBox(height: 8),
+
               TextFormField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
                 style: const TextStyle(
                   fontFamily: 'interregular',
                   fontSize: 14,
@@ -130,14 +207,11 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
                   ),
                 ),
               ),
-             
+
               const SizedBox(height: 36),
+
               GestureDetector(
-                onTap: () {
-                 Navigator.push(
-                context, MaterialPageRoute(
-                  builder: (context) => VerificationView(),),);
-                },
+                onTap: isLoading ? null : handleForgotPassword,
                 child: Container(
                   height: 60,
                   width: double.infinity,
@@ -145,14 +219,14 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
                     gradient: orangeGradient,
                     borderRadius: BorderRadius.circular(30),
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Text(
-                      "Continue",
+                      isLoading ? "Sending..." : "Continue",
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: 'interbold',
                         fontSize: 15,
-                        fontWeight: FontWeight(800),
+                        fontWeight: FontWeight.w800,
                         color: Colors.white,
                       ),
                     ),
