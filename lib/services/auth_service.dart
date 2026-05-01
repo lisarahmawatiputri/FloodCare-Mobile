@@ -23,7 +23,7 @@ class AuthService {
       Uri.parse('$baseUrl/login'),
       headers: _jsonHeaders(),
       body: jsonEncode({
-        'email': email,
+        'email': email.trim().toLowerCase(),
         'password': password,
       }),
     );
@@ -201,7 +201,15 @@ class AuthService {
     final data = await getUser();
     return data['user']?['nama_lengkap'] ?? 'User';
   }
+  Future<Map<String, dynamic>> getCurrentUser() async {
+    final data = await getUser();
 
+    if (data['user'] != null) {
+      return data['user'];
+    }
+
+    return data;
+}
   Future<void> logout() async {
     final token = await getToken();
 

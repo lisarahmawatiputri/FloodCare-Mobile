@@ -1,6 +1,7 @@
+import 'package:floodcare_mobile/models/donation_program_model.dart';
 import 'package:floodcare_mobile/services/auth_service.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
-import 'package:floodcare_mobile/views/dashboard/donasi_view.dart';
+import 'package:floodcare_mobile/views/dashboard/donation_detail_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geocoding/geocoding.dart';
@@ -24,6 +25,8 @@ class _HomeViewState extends State<HomeView> {
 
   String wilayahText = 'Memuat lokasi...';
   String userName = 'User';
+
+  late Future<List<DonationProgram>> donationProgramsFuture;
 
   final List<Map<String, dynamic>> laporanList = [
     {
@@ -63,6 +66,7 @@ class _HomeViewState extends State<HomeView> {
     super.initState();
     _getCurrentLocation();
     _loadUserName();
+    donationProgramsFuture = authService.getDonationPrograms();
   }
 
   Future<void> _loadUserName() async {
@@ -86,6 +90,7 @@ class _HomeViewState extends State<HomeView> {
   Future<void> _getCurrentLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
       if (!serviceEnabled) {
         setState(() {
           isLoadingLocation = false;
@@ -130,6 +135,8 @@ class _HomeViewState extends State<HomeView> {
         position.longitude,
       );
 
+      if (!mounted) return;
+
       setState(() {
         currentLocation = userLatLng;
         wilayahText = wilayah;
@@ -142,6 +149,8 @@ class _HomeViewState extends State<HomeView> {
         }
       });
     } catch (_) {
+      if (!mounted) return;
+
       setState(() {
         isLoadingLocation = false;
         locationError = 'Gagal mengambil lokasi';
@@ -186,6 +195,13 @@ class _HomeViewState extends State<HomeView> {
     } catch (_) {
       return 'Wilayah Tidak Diketahui';
     }
+  }
+
+  String formatRupiah(int value) {
+    return 'Rp ${value.toString().replaceAllMapped(
+          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+          (match) => '${match[1]}.',
+        )}';
   }
 
   Widget _buildLaporanCard(Map<String, dynamic> item) {
@@ -346,87 +362,202 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget _buildDonasiCard(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F1F4),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Bantuan Korban Banjir Patrang',
-            style: TextStyle(
-              fontSize: 18,
-              fontFamily: 'jakartabold',
-              color: Colors.black,
+    return FutureBuilder<List<DonationProgram>>(
+      future: donationProgramsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            width: double.infinity,
+            height: 170,
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F1F4),
+              borderRadius: BorderRadius.circular(24),
             ),
-          ),
-          const SizedBox(height: 8),
-          // const Row(
-          //   children: [
-          //     Expanded(
-          //       child: Text(
-          //         'Terkumpul: Rp 12.400.000',
-          //         style: TextStyle(
-          //           fontSize: 13,
-          //           fontFamily: 'intersemibold',
-          //           color: Colors.black87,
-          //         ),
-          //       ),
-          //     ),
-          //     Text(
-          //       'Target: Rp 20.000.000',
-          //       style: TextStyle(
-          //         fontSize: 13,
-          //         fontFamily: 'intersemibold',
-          //         color: Colors.black54,
-          //       ),
-          //     ),
-          //   ],
-          // ),
-             SizedBox(
-              width: double.infinity,
-              height: 54,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: orangeGradient,
-                  borderRadius: BorderRadius.circular(30),
+            child: const Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F1F4),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              children: [
+                const Text(
+                  'Gagal memuat donasi',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontFamily: 'jakartabold',
+                    color: Colors.black,
+                  ),
                 ),
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const DonasiView(),
-                      ),
-                    );
+                const SizedBox(height: 10),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      donationProgramsFuture =
+                          authService.getDonationPrograms();
+                    });
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                  child: const Text(
+                    'Coba Lagi',
+                    style: TextStyle(
+                      color: Color(0xFFC65A1E),
+                      fontFamily: 'interbold',
                     ),
                   ),
-                  child: const Text(
-                    'Donasi sekarang',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontFamily: 'interbold',
-                      color: Colors.white,
+                ),
+              ],
+            ),
+          );
+        }
+
+        final programs = snapshot.data ?? [];
+
+        if (programs.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F1F4),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: const Text(
+              'Belum ada program donasi aktif',
+              style: TextStyle(
+                fontSize: 15,
+                fontFamily: 'jakartabold',
+                color: Colors.black,
+              ),
+            ),
+          );
+        }
+
+        final program = programs.firstWhere(
+          (item) => item.isEmergency,
+          orElse: () => programs.first,
+        );
+
+        final double progress = program.targetAmount == 0
+            ? 0
+            : (program.collectedAmount / program.targetAmount)
+                .clamp(0.0, 1.0);
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F1F4),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                program.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontFamily: 'jakartabold',
+                  color: Colors.black,
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Terkumpul: ${formatRupiah(program.collectedAmount)}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontFamily: 'intersemibold',
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'Target: ${formatRupiah(program.targetAmount)}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontFamily: 'intersemibold',
+                      color: Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              ClipRRect(
+                borderRadius: BorderRadius.circular(100),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 5,
+                  backgroundColor: const Color(0xFFE0E0E0),
+                  color: lightorange,
+                ),
+              ),
+
+              const SizedBox(height: 22),
+
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: orangeGradient,
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DonationDetailView(program: program),
+                        ),
+                      );
+
+                      if (!mounted) return;
+
+                      setState(() {
+                        donationProgramsFuture = authService.getDonationPrograms();
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Text(
+                      'Donasi sekarang',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontFamily: 'interbold',
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-                    ],
-                  ),
-                );
-              }
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -503,6 +634,7 @@ class _HomeViewState extends State<HomeView> {
                           ),
                       ],
                     ),
+
                     Positioned(
                       top: 16,
                       left: 16,
@@ -542,6 +674,7 @@ class _HomeViewState extends State<HomeView> {
                         ),
                       ),
                     ),
+
                     Positioned(
                       left: 16,
                       right: 16,
@@ -572,6 +705,7 @@ class _HomeViewState extends State<HomeView> {
                         ],
                       ),
                     ),
+
                     if (isLoadingLocation)
                       Container(
                         color: Colors.black.withOpacity(0.15),
@@ -581,6 +715,7 @@ class _HomeViewState extends State<HomeView> {
                           ),
                         ),
                       ),
+
                     if (!isLoadingLocation && locationError != null)
                       Container(
                         color: Colors.black.withOpacity(0.20),
