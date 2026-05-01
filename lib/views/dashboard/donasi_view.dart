@@ -44,12 +44,20 @@ class _DonasiViewState extends State<DonasiView> {
     );
   }
 
-  return Image.asset(
-    image,
-    width: width,
-    height: height,
-    fit: BoxFit.cover,
-  );
+    return Image.asset(
+      image,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) {
+        return Image.asset(
+          'assets/images/donasi1.png',
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+        );
+      },
+    );
 }
 
   final List<String> categories = [
@@ -66,7 +74,11 @@ class _DonasiViewState extends State<DonasiView> {
     super.initState();
     programsFuture = AuthService().getDonationPrograms();
   }
-
+  void refreshPrograms() {
+    setState(() {
+      programsFuture = AuthService().getDonationPrograms();
+    });
+  }
   String formatRupiah(int value) {
     return 'Rp ${value.toString().replaceAllMapped(
           RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
@@ -88,7 +100,23 @@ class _DonasiViewState extends State<DonasiView> {
 
             if (snapshot.hasError) {
               return Center(
-                child: Text(snapshot.error.toString()),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        snapshot.error.toString(),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: refreshPrograms,
+                        child: const Text('Coba Lagi'),
+                      ),
+                    ],
+                  ),
+                ),
               );
             }
 
@@ -169,16 +197,22 @@ class _DonasiViewState extends State<DonasiView> {
 
                   ...emergency.map((program) {
                     return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
+                     onTap: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                DonationDetailView(program: program),
+                            builder: (_) => DonationDetailView(program: program),
                           ),
                         );
+
+                        if (!mounted) return;
+                          refreshPrograms();
+
+                        setState(() {
+                          programsFuture = AuthService().getDonationPrograms();
+                        });
                       },
-                      child: Container(
+                     child: Container(
                         margin: const EdgeInsets.only(bottom: 20),
                         height: 240,
                         child: Stack(
@@ -280,14 +314,17 @@ class _DonasiViewState extends State<DonasiView> {
                       subtitle: Text(
                           formatRupiah(program.collectedAmount)),
                       trailing: const Text("Donasi"),
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                DonationDetailView(program: program),
+                            builder: (_) => DonationDetailView(program: program),
                           ),
                         );
+
+                        if (!mounted) return;
+
+                        refreshPrograms();
                       },
                     );
                   }),
