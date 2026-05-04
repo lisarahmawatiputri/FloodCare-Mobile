@@ -60,53 +60,51 @@ class _DonationDetailViewState extends State<DonationDetailView> {
   }
 
   Widget programImage({
-    required String image,
-    required double width,
-    required double height,
-  }) {
-    const defaultImage = 'assets/images/donasi1.png';
+  required String image,
+  required double width,
+  required double height,
+}) {
+  const fallback = 'assets/images/donasi1.png';
 
-    if (image.isEmpty) {
-      return Image.asset(
-        defaultImage,
-        width: width,
-        height: height,
-        fit: BoxFit.cover,
-      );
-    }
-
-    if (image.startsWith('http://') || image.startsWith('https://')) {
-      return Image.network(
-        image,
-        width: width,
-        height: height,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) {
-          return Image.asset(
-            defaultImage,
-            width: width,
-            height: height,
-            fit: BoxFit.cover,
-          );
-        },
-      );
-    }
-
+  if (image.isEmpty) {
     return Image.asset(
-      image,
+      fallback,
       width: width,
       height: height,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) {
-        return Image.asset(
-          defaultImage,
-          width: width,
-          height: height,
-          fit: BoxFit.cover,
-        );
-      },
     );
   }
+
+  String fixedUrl = image;
+
+  if (fixedUrl.startsWith('http://127.0.0.1:8000')) {
+    fixedUrl = fixedUrl.replaceFirst(
+      'http://127.0.0.1:8000',
+      'http://10.0.2.2:8000',
+    );
+  } else if (!fixedUrl.startsWith('http://') &&
+      !fixedUrl.startsWith('https://')) {
+    fixedUrl = 'http://10.0.2.2:8000/storage/$fixedUrl';
+  }
+
+  return Image.network(
+    fixedUrl,
+    width: width,
+    height: height,
+    fit: BoxFit.cover,
+    errorBuilder: (context, error, stackTrace) {
+      debugPrint('Gagal load image: $fixedUrl');
+      debugPrint('Error: $error');
+
+      return Image.asset(
+        fallback,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+      );
+    },
+  );
+}
 
   Future<void> handleContinue() async {
     final amount = getFinalAmount();
