@@ -13,51 +13,51 @@ class DonasiView extends StatefulWidget {
 
 class _DonasiViewState extends State<DonasiView> {
   int selectedCategory = 0;
-  Widget programImage({
+ Widget programImage({
   required String image,
   required double width,
   required double height,
 }) {
+  const fallback = 'assets/images/donasi1.png';
+
   if (image.isEmpty) {
     return Image.asset(
-      'assets/images/donasi1.png',
+      fallback,
       width: width,
       height: height,
       fit: BoxFit.cover,
     );
   }
 
-  if (image.startsWith('http://') || image.startsWith('https://')) {
-    return Image.network(
-      image,
-      width: width,
-      height: height,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) {
-        return Image.asset(
-          'assets/images/donasi1.png',
-          width: width,
-          height: height,
-          fit: BoxFit.cover,
-        );
-      },
+  String fixedUrl = image;
+
+  if (fixedUrl.startsWith('http://127.0.0.1:8000')) {
+    fixedUrl = fixedUrl.replaceFirst(
+      'http://127.0.0.1:8000',
+      'http://10.0.2.2:8000',
     );
+  } else if (!fixedUrl.startsWith('http://') &&
+      !fixedUrl.startsWith('https://')) {
+    fixedUrl = 'http://10.0.2.2:8000/storage/$fixedUrl';
   }
 
-    return Image.asset(
-      image,
-      width: width,
-      height: height,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) {
-        return Image.asset(
-          'assets/images/donasi1.png',
-          width: width,
-          height: height,
-          fit: BoxFit.cover,
-        );
-      },
-    );
+  return Image.network(
+    fixedUrl,
+    width: width,
+    height: height,
+    fit: BoxFit.cover,
+    errorBuilder: (context, error, stackTrace) {
+      debugPrint('Gagal load image: $fixedUrl');
+      debugPrint('Error: $error');
+
+      return Image.asset(
+        fallback,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+      );
+    },
+  );
 }
 
   final List<String> categories = [
