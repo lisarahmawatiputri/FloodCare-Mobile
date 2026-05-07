@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:floodcare_mobile/models/donation_program_model.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
 import 'package:floodcare_mobile/services/auth_service.dart';
@@ -18,48 +19,15 @@ class DonationDetailView extends StatefulWidget {
 
 class _DonationDetailViewState extends State<DonationDetailView> {
   final customAmountController = TextEditingController();
+  final messageController = TextEditingController();
+
   final AuthService authService = AuthService();
+
   bool isLoading = false;
-  int? selectedAmount;
+  bool isAnonymous = false;
   bool isCustomSelected = false;
-  Widget programImage({
-  required String image,
-  required double width,
-  required double height,
-}) {
-  if (image.isEmpty) {
-    return Image.asset(
-      'assets/images/donasi1.png',
-      width: width,
-      height: height,
-      fit: BoxFit.cover,
-    );
-  }
 
-  if (image.startsWith('http://') || image.startsWith('https://')) {
-    return Image.network(
-      image,
-      width: width,
-      height: height,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) {
-        return Image.asset(
-          'assets/images/donasi1.png',
-          width: width,
-          height: height,
-          fit: BoxFit.cover,
-        );
-      },
-    );
-  }
-
-  return Image.asset(
-    image,
-    width: width,
-    height: height,
-    fit: BoxFit.cover,
-  );
-}
+  int? selectedAmount;
 
   final List<int> amounts = [
     10000,
@@ -67,6 +35,13 @@ class _DonationDetailViewState extends State<DonationDetailView> {
     50000,
     100000,
   ];
+
+  @override
+  void dispose() {
+    customAmountController.dispose();
+    messageController.dispose();
+    super.dispose();
+  }
 
   String formatRupiah(int value) {
     return 'Rp ${value.toString().replaceAllMapped(
@@ -77,83 +52,127 @@ class _DonationDetailViewState extends State<DonationDetailView> {
 
   int getFinalAmount() {
     if (isCustomSelected) {
-      return int.tryParse(customAmountController.text.replaceAll('.', '')) ?? 0;
+      final raw = customAmountController.text.replaceAll(RegExp(r'[^0-9]'), '');
+      return int.tryParse(raw) ?? 0;
     }
 
     return selectedAmount ?? 0;
   }
 
-  Future<void> handleContinue() async {
-  final amount = getFinalAmount();
+  Widget programImage({
+  required String image,
+  required double width,
+  required double height,
+}) {
+  const fallback = 'assets/images/donasi1.png';
 
-  if (amount < 10000) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Minimal donasi adalah Rp 10.000'),
-      ),
+  if (image.isEmpty) {
+    return Image.asset(
+      fallback,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
     );
-    return;
   }
 
-  setState(() {
-    isLoading = true;
-  });
+  String fixedUrl = image;
 
-  try {
-    final data = await authService.createDonationPayment(
-      programDonasiId: widget.program.id,
-      amount: amount,
-      pesan: null,
-      isAnonymous: false,
+  if (fixedUrl.startsWith('http://127.0.0.1:8000')) {
+    fixedUrl = fixedUrl.replaceFirst(
+      'http://127.0.0.1:8000',
+      'http://10.0.2.2:8000',
     );
-
-    final snapUrl = data['snap_url'];
-
-    if (snapUrl == null) {
-      throw Exception('Snap URL tidak ditemukan');
-    }
-
-    if (!mounted) return;
-
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PaymentWebView(snapUrl: snapUrl),
-      ),
-    );
-
-    if (!mounted) return;
-
-    if (result == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pembayaran berhasil')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pembayaran sedang diproses')),
-      );
-    }
-  } catch (e) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(e.toString().replaceFirst('Exception: ', '')),
-      ),
-    );
-  } finally {
-    if (mounted) {
-      setState(() {
-        isLoading = false;
-      });
-    }
+  } else if (!fixedUrl.startsWith('http://') &&
+      !fixedUrl.startsWith('https://')) {
+    fixedUrl = 'http://10.0.2.2:8000/storage/$fixedUrl';
   }
+
+  return Image.network(
+    fixedUrl,
+    width: width,
+    height: height,
+    fit: BoxFit.cover,
+    errorBuilder: (context, error, stackTrace) {
+      debugPrint('Gagal load image: $fixedUrl');
+      debugPrint('Error: $error');
+
+      return Image.asset(
+        fallback,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+      );
+    },
+  );
 }
 
-  @override
-  void dispose() {
-    customAmountController.dispose();
-    super.dispose();
+  Future<void> handleContinue() async {
+    final amount = getFinalAmount();
+
+    if (amount < 10000) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Minimal donasi adalah Rp 10.000'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final data = await authService.createDonationPayment(
+        programDonasiId: widget.program.id,
+        amount: amount,
+        pesan: messageController.text.trim().isEmpty
+            ? null
+            : messageController.text.trim(),
+        isAnonymous: isAnonymous,
+      );
+
+      final snapUrl = data['snap_url'];
+
+      if (snapUrl == null) {
+        throw Exception('Snap URL tidak ditemukan');
+      }
+
+      if (!mounted) return;
+
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PaymentWebView(snapUrl: snapUrl),
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (result == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pembayaran berhasil')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pembayaran sedang diproses')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -161,74 +180,112 @@ class _DonationDetailViewState extends State<DonationDetailView> {
     final program = widget.program;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 100),
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 110),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              InkWell(
-                borderRadius: BorderRadius.circular(100),
-                onTap: () => Navigator.pop(context),
-                child: const Icon(Icons.arrow_back),
-              ),
+               InkWell(
+                  borderRadius: BorderRadius.circular(100),
+                  onTap: () => Navigator.pop(context),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.arrow_back,
+                      size: 26,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
 
-              const SizedBox(height: 22),
-
-              ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: programImage(
-                  image: widget.program.image,
-                  width: double.infinity,
-                  height: 190,
+                const SizedBox(height: 16),
+              // CARD PROGRAM
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFFE2E8F0),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: programImage(
+                        image: program.image,
+                        width: 88,
+                        height: 88,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'DARURAT BANJIR',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFFFF4B3E),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            program.title,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              height: 1.25,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1F2933),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
-              const SizedBox(height: 20),
-
-              Text(
-                program.title,
-                style: const TextStyle(
-                  fontFamily: 'jakartabold',
-                  fontSize: 24,
-                  color: Colors.black,
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              Text(
-                program.location,
-                style: const TextStyle(
-                  fontFamily: 'interregular',
-                  fontSize: 14,
-                  color: Colors.black54,
-                ),
-              ),
-
-              const SizedBox(height: 28),
+              const SizedBox(height: 26),
 
               const Text(
                 'Pilih Nominal Donasi',
                 style: TextStyle(
-                  fontFamily: 'interbold',
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1F2933),
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
+              // NOMINAL GRID
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: amounts.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                  childAspectRatio: 2.3,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 2.05,
                 ),
                 itemBuilder: (context, index) {
                   final amount = amounts[index];
@@ -246,22 +303,24 @@ class _DonationDetailViewState extends State<DonationDetailView> {
                     child: Container(
                       decoration: BoxDecoration(
                         gradient: isSelected ? orangeGradient : null,
-                        color: isSelected ? null : const Color(0xFFF7F7F7),
-                        borderRadius: BorderRadius.circular(18),
+                        color: isSelected ? null : Colors.white,
+                        borderRadius: BorderRadius.circular(7),
                         border: Border.all(
                           color: isSelected
                               ? Colors.transparent
-                              : const Color(0xFFE0E0E0),
+                              : const Color(0xFFD6E3EA),
+                          width: 1.5,
                         ),
                       ),
                       child: Center(
                         child: Text(
                           formatRupiah(amount),
                           style: TextStyle(
-                            fontFamily: 'interbold',
-                            fontSize: 15,
-                            color: isSelected ? Colors.white : Colors.black,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: isSelected
+                                ? Colors.white
+                                : const Color(0xFF263238),
                           ),
                         ),
                       ),
@@ -270,22 +329,25 @@ class _DonationDetailViewState extends State<DonationDetailView> {
                 },
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 22),
 
               const Text(
-                'Atau masukkan nominal sendiri',
+                'Nominal Lainnya',
                 style: TextStyle(
-                  fontFamily: 'intermedium',
-                  fontSize: 14,
-                  color: Colors.black87,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF5D4037),
                 ),
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
 
               TextFormField(
                 controller: customAmountController,
                 keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
                 onTap: () {
                   setState(() {
                     isCustomSelected = true;
@@ -293,44 +355,182 @@ class _DonationDetailViewState extends State<DonationDetailView> {
                   });
                 },
                 decoration: InputDecoration(
-                  hintText: 'Minimal Rp 10.000',
-                  prefixText: 'Rp ',
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 18,
-                    horizontal: 20,
+                  prefixText: 'Rp  ',
+                  hintText: 'Min. 10.000',
+                  prefixStyle: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF6B7280),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(18),
-                    borderSide: BorderSide(
-                      color: lightorange,
-                      width: 2,
-                    ),
+                  hintStyle: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF6B7280),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 19,
+                    horizontal: 16,
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(7),
                     borderSide: const BorderSide(
-                      color: Color(0xFFE0E0E0),
+                      color: Color(0xFFD6E3EA),
+                      width: 1.5,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(7),
+                    borderSide: BorderSide(
+                      color: lightorange,
+                      width: 1.8,
                     ),
                   ),
                 ),
               ),
 
-              const SizedBox(height: 36),
+              const SizedBox(height: 22),
+
+              // PESAN DUKUNGAN
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7F7FF),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: const Color(0xFFE0E1FF),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.chat_bubble_outline,
+                          size: 17,
+                          color: Color(0xFF5364C8),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Tulis Pesan Dukungan (Opsional)',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF5364C8),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    TextFormField(
+                      controller: messageController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText:
+                            'Tulis doa atau kata-kata penyemangat\nuntuk korban banjir...',
+                        hintStyle: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFFA5B0C2),
+                          height: 1.4,
+                        ),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.65),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(6),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.all(14),
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: Checkbox(
+                            value: isAnonymous,
+                            activeColor: lightorange,
+                            side: const BorderSide(
+                              color: Color(0xFFD1D5DB),
+                            ),
+                            onChanged: (value) {
+                              setState(() {
+                                isAnonymous = value ?? false;
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Donasi sebagai anonim',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF5F6368),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 22),
+
+              // INFO BOX
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDDEBF5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Color(0xFFFF7A1A),
+                      size: 21,
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Donasi Anda akan disalurkan 100% untuk pengadaan buku, alat tulis, dan fasilitas belajar darurat bagi siswa terdampak banjir.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.55,
+                          color: Color(0xFF475569),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 28),
 
               GestureDetector(
-                onTap:isLoading ? null : handleContinue,
+                onTap: isLoading ? null : handleContinue,
                 child: Container(
-                  height: 60,
+                  height: 58,
                   width: double.infinity,
                   decoration: BoxDecoration(
                     gradient: orangeGradient,
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(28),
                   ),
                   child: Center(
                     child: Text(
-                      isLoading ? "Loading..." : 'Continue',
+                      isLoading ? 'Loading...' : 'Lanjutkan Donasi',
                       style: const TextStyle(
-                        fontFamily: 'interbold',
                         fontSize: 15,
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
