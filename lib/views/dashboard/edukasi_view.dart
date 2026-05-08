@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:floodcare_mobile/utils/colors.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:floodcare_mobile/utils/colors.dart'; 
 
 class EdukasiView extends StatefulWidget {
   const EdukasiView({super.key});
@@ -10,6 +12,11 @@ class EdukasiView extends StatefulWidget {
 
 class _EdukasiViewState extends State<EdukasiView> {
   int selectedCategory = 0;
+  String searchQuery = '';
+  
+  // State untuk API Artikel
+  List<Map<String, dynamic>> articles = [];
+  bool isLoading = true; 
 
   final List<String> categories = [
     'Semua',
@@ -17,27 +24,7 @@ class _EdukasiViewState extends State<EdukasiView> {
     'Video',
   ];
 
-  final List<Map<String, dynamic>> articles = [
-    {
-      'category': 'KESELAMATAN',
-      'title': 'Panduan Evakuasi Saat Banjir Melanda',
-      'description':
-          'Pelajari langkah-langkah penting untuk menyelamatkan diri dan keluarga saat terjadi banjir.',
-      'readTime': '5 mnt baca',
-      'date': '12 Okt 2023',
-      //'image': 'assets/images/edukasi1.png',
-    },
-    {
-      'category': 'LINGKUNGAN',
-      'title': 'Pentingnya Menjaga Drainase untuk Mencegah Genangan Air',
-      'description':
-          'Langkah sederhana yang bisa dilakukan setiap rumah tangga untuk menjaga aliran air tetap lancar saat hujan.',
-      'readTime': '6 mnt baca',
-      'date': '08 Okt 2023',
-      //'image': 'assets/images/edukasi2.png',
-    },
-  ];
-
+  // Data dummy untuk video (karena belum disambung ke API)
   final List<Map<String, dynamic>> videos = [
     {
       'title': 'Cara Aman Menghadapi Banjir di Rumah',
@@ -51,51 +38,96 @@ class _EdukasiViewState extends State<EdukasiView> {
     },
   ];
 
-    Widget safeAssetImage({
-    required String image,
-    required double width,
-    required double height,
-    BoxFit fit = BoxFit.cover,
-  }) {
-    if (image.trim().isEmpty) {
-      return Container(
-        width: width,
-        height: height,
-        color: const Color(0xFFE5E7EB),
-        child: const Center(
-          child: Icon(
-            Icons.image_not_supported_outlined,
-            color: Color(0xFF9CA3AF),
-            size: 34,
-          ),
-        ),
-      );
-    }
+  // Fungsi untuk hit API
+  Future<void> fetchArticles() async {
+    try {
+      // GANTI URL DI BAWAH INI DENGAN URL API ASLI DARI WEB KALIAN
+      final url = Uri.parse('http://localhost:8000/api/artikel'); 
+      final response = await http.get(url);
 
-    return Image.asset(
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        
+        setState(() {
+          // Konversi data dari JSON ke List<Map>
+          articles = List<Map<String, dynamic>>.from(data);
+          isLoading = false; 
+        });
+      } else {
+        debugPrint('Gagal mengambil data. Status code: ${response.statusCode}');
+        setState(() => isLoading = false);
+      }
+    } catch (e) {
+      debugPrint('Terjadi error saat hit API: $e');
+      setState(() => isLoading = false);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    
+    fetchArticles();
+  }
+
+  Widget safeAssetImage({
+  required String image,
+  required double width,
+  required double height,
+  BoxFit fit = BoxFit.cover,
+}) {
+  // Jika image berawalan http, gunakan Image.network
+  if (image.startsWith('http')) {
+    return Image.network(
       image,
       width: width,
       height: height,
       fit: fit,
-      errorBuilder: (_, __, ___) {
-        return Container(
-          width: width,
-          height: height,
-          color: const Color(0xFFE5E7EB),
-          child: const Center(
-            child: Icon(
-              Icons.image_not_supported_outlined,
-              color: Color(0xFF9CA3AF),
-              size: 34,
-            ),
-          ),
-        );
-      },
+      errorBuilder: (context, error, stackTrace) => _placeholderImage(width, height),
     );
   }
 
+  // Jika image kosong atau path lokal
+  if (image.trim().isEmpty) {
+    return _placeholderImage(width, height);
+  }
+
+  return Image.asset(
+    image,
+    width: width,
+    height: height,
+    fit: fit,
+    errorBuilder: (context, error, stackTrace) => _placeholderImage(width, height),
+  );
+}
+
+// Fungsi pembantu untuk tampilan jika gambar error/kosong
+Widget _placeholderImage(double width, double height) {
+  return Container(
+    width: width,
+    height: height,
+    color: const Color(0xFFE5E7EB),
+    child: const Center(
+      child: Icon(Icons.image_not_supported_outlined, color: Color(0xFF9CA3AF), size: 34),
+    ),
+  );
+}
+
   @override
   Widget build(BuildContext context) {
+    // Logika Filter Data berdasarkan Pencarian
+    final filteredArticles = articles.where((article) {
+      final title = (article['title'] ?? '').toString().toLowerCase();
+      final query = searchQuery.toLowerCase();
+      return title.contains(query); 
+    }).toList();
+    
+    final filteredVideos = videos.where((video) {
+      final title = (video['title'] ?? '').toString().toLowerCase();
+      final query = searchQuery.toLowerCase();
+      return title.contains(query);
+    }).toList();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
@@ -105,40 +137,68 @@ class _EdukasiViewState extends State<EdukasiView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _searchBox(),
-
               const SizedBox(height: 14),
-
               _categoryTabs(),
-
               const SizedBox(height: 24),
+              
+              // Sembunyikan popular card jika sedang ngetik pencarian
+              if (searchQuery.isEmpty) ...[
+                _popularCard(),
+                const SizedBox(height: 26),
+              ],
 
-              _popularCard(),
+              // --- BAGIAN ARTIKEL ---
+              if ((selectedCategory == 0 || selectedCategory == 1)) ...[
+                _sectionHeader(
+                  title: 'Artikel Terbaru',
+                  onTap: () {},
+                ),
+                const SizedBox(height: 14),
+                
+                // Loading indikator untuk API
+                if (isLoading)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (filteredArticles.isNotEmpty)
+                  ...filteredArticles.map((article) {
+                    return _articleCard(article);
+                  })
+                else
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20.0),
+                    child: Text(
+                      'Tidak ada artikel ditemukan.', 
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                const SizedBox(height: 20),
+              ],
 
-              const SizedBox(height: 26),
-
-              _sectionHeader(
-                title: 'Artikel Terbaru',
-                onTap: () {},
-              ),
-
-              const SizedBox(height: 14),
-
-              ...articles.map((article) {
-                return _articleCard(article);
-              }),
-
-              const SizedBox(height: 20),
-
-              _sectionHeader(
-                title: 'Video Terbaru',
-                onTap: () {},
-              ),
-
-              const SizedBox(height: 14),
-
-              ...videos.map((video) {
-                return _videoCard(video);
-              }),
+              // --- BAGIAN VIDEO ---
+              if ((selectedCategory == 0 || selectedCategory == 2)) ...[
+                _sectionHeader(
+                  title: 'Video Terbaru',
+                  onTap: () {},
+                ),
+                const SizedBox(height: 14),
+                
+                if (filteredVideos.isNotEmpty)
+                  ...filteredVideos.map((video) {
+                    return _videoCard(video);
+                  })
+                else if (searchQuery.isNotEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20.0),
+                    child: Text(
+                      'Tidak ada video ditemukan.', 
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+              ],
             ],
           ),
         ),
@@ -157,17 +217,22 @@ class _EdukasiViewState extends State<EdukasiView> {
           color: const Color(0xFFE2E8F0),
         ),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(
+          const Icon(
             Icons.search,
             color: Color(0xFF94A3B8),
             size: 24,
           ),
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           Expanded(
             child: TextField(
-              decoration: InputDecoration(
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value;
+                });
+              },
+              decoration: const InputDecoration(
                 hintText: 'Cari materi edukasi banjir...',
                 hintStyle: TextStyle(
                   color: Color(0xFF94A3B8),
@@ -255,7 +320,6 @@ class _EdukasiViewState extends State<EdukasiView> {
               height: 178,
             ),
           ),
-
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -271,7 +335,6 @@ class _EdukasiViewState extends State<EdukasiView> {
               ),
             ),
           ),
-
           Positioned(
             left: 18,
             top: 14,
@@ -295,7 +358,6 @@ class _EdukasiViewState extends State<EdukasiView> {
               ),
             ),
           ),
-
           const Positioned(
             left: 18,
             right: 26,
@@ -312,7 +374,6 @@ class _EdukasiViewState extends State<EdukasiView> {
               ),
             ),
           ),
-
           const Positioned(
             left: 18,
             right: 24,
@@ -385,11 +446,11 @@ class _EdukasiViewState extends State<EdukasiView> {
         children: [
           Stack(
             children: [
-             safeAssetImage(
-              image: article['image']?.toString() ?? '',
-              width: double.infinity,
-              height: 165,
-            ),
+              safeAssetImage(
+                image: article['image']?.toString() ?? '',
+                width: double.infinity,
+                height: 165,
+              ),
               Positioned(
                 left: 12,
                 top: 12,
@@ -403,7 +464,8 @@ class _EdukasiViewState extends State<EdukasiView> {
                     borderRadius: BorderRadius.circular(2),
                   ),
                   child: Text(
-                    article['category'],
+                    // Default string jika data category dari API null
+                    article['category']?.toString() ?? 'ARTIKEL', 
                     style: const TextStyle(
                       fontSize: 9,
                       color: Color(0xFFC65A1E),
@@ -414,7 +476,6 @@ class _EdukasiViewState extends State<EdukasiView> {
               ),
             ],
           ),
-
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
             child: Column(
@@ -429,7 +490,7 @@ class _EdukasiViewState extends State<EdukasiView> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      article['readTime'],
+                      article['readTime']?.toString() ?? '- mnt baca',
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF94A3B8),
@@ -444,7 +505,7 @@ class _EdukasiViewState extends State<EdukasiView> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      article['date'],
+                      article['date']?.toString() ?? '-',
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF94A3B8),
@@ -453,11 +514,9 @@ class _EdukasiViewState extends State<EdukasiView> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 12),
-
                 Text(
-                  article['title'],
+                  article['title']?.toString() ?? 'Tanpa Judul',
                   style: const TextStyle(
                     fontSize: 18,
                     height: 1.25,
@@ -465,11 +524,9 @@ class _EdukasiViewState extends State<EdukasiView> {
                     color: Color(0xFF1F2933),
                   ),
                 ),
-
                 const SizedBox(height: 10),
-
                 Text(
-                  article['description'],
+                  article['description']?.toString() ?? 'Tidak ada deskripsi',
                   style: const TextStyle(
                     fontSize: 14,
                     height: 1.45,
@@ -477,9 +534,7 @@ class _EdukasiViewState extends State<EdukasiView> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-
                 const SizedBox(height: 18),
-
                 const Text(
                   'BACA SELENGKAPNYA ›',
                   style: TextStyle(
@@ -516,7 +571,7 @@ class _EdukasiViewState extends State<EdukasiView> {
         children: [
           Stack(
             children: [
-               safeAssetImage(
+              safeAssetImage(
                 image: video['image']?.toString() ?? '',
                 width: double.infinity,
                 height: 170,
@@ -526,7 +581,6 @@ class _EdukasiViewState extends State<EdukasiView> {
                   color: Colors.black.withOpacity(0.18),
                 ),
               ),
-
               Center(
                 heightFactor: 3.5,
                 child: Container(
@@ -543,7 +597,6 @@ class _EdukasiViewState extends State<EdukasiView> {
                   ),
                 ),
               ),
-
               Positioned(
                 right: 12,
                 bottom: 12,
@@ -557,7 +610,7 @@ class _EdukasiViewState extends State<EdukasiView> {
                     borderRadius: BorderRadius.circular(5),
                   ),
                   child: Text(
-                    video['duration'],
+                    video['duration']?.toString() ?? '00:00',
                     style: const TextStyle(
                       fontSize: 11,
                       color: Colors.white,
@@ -568,11 +621,10 @@ class _EdukasiViewState extends State<EdukasiView> {
               ),
             ],
           ),
-
           Padding(
             padding: const EdgeInsets.all(14),
             child: Text(
-              video['title'],
+              video['title']?.toString() ?? 'Tanpa Judul',
               style: const TextStyle(
                 fontSize: 16,
                 height: 1.3,
