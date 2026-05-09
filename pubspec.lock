@@ -280,6 +280,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.5"
+  get_x:
+    dependency: "direct main"
+    description:
+      name: get_x
+      sha256: d54a72282b08aad740ba9886b446d546f8028a2d55bfb0c478b4c425d4ab5617
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.0.0"
   glob:
     dependency: transitive
     description:
