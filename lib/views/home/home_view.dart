@@ -109,7 +109,7 @@ class _HomeViewState extends State<HomeView> {
               width: 72,
               height: 72,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
+            errorBuilder: (context, error, stackTrace) => Container(
                 width: 72,
                 height: 72,
                 color: Colors.grey.shade300,
@@ -193,7 +193,7 @@ class _HomeViewState extends State<HomeView> {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
@@ -514,7 +514,7 @@ class _HomeViewState extends State<HomeView> {
                             borderRadius: BorderRadius.circular(30),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
+                                color: Colors.black.withValues(alpha: 0.08),
                                 blurRadius: 10,
                                 offset: const Offset(0, 3),
                               ),
@@ -554,7 +554,7 @@ class _HomeViewState extends State<HomeView> {
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.12),
+                                  color: Colors.black.withValues(alpha: 0.12),
                                   blurRadius: 10,
                                   offset: const Offset(0, 3),
                                 ),

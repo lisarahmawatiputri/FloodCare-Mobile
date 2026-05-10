@@ -41,10 +41,10 @@ class ReportPhotoPreviewView extends StatelessWidget {
                         child: Container(
                           height: 50,
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.35),
+                            color: Colors.black.withValues(alpha: 0.35),
                             borderRadius: BorderRadius.circular(28),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.12),
+                              color: Colors.white.withValues(alpha: 0.12),
                             ),
                           ),
                           child: const Row(
@@ -92,7 +92,7 @@ class ReportPhotoPreviewView extends StatelessWidget {
                             borderRadius: BorderRadius.circular(28),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFFF6A00).withOpacity(0.35),
+                                color: const Color(0xFFFF6A00).withValues(alpha: 0.35),
                                 blurRadius: 14,
                                 offset: const Offset(0, 6),
                               ),

@@ -79,8 +79,10 @@ class HomeViewModel extends ChangeNotifier {
       }
 
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.best,
-      );
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.best,
+          ),
+        );
 
       final userLatLng = LatLng(
         position.latitude,

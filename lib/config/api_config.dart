@@ -8,7 +8,7 @@ class ApiConfig {
   // static const String _host = '10.0.2.2';
 
   // HP fisik / Waydroid:
-  static const String _host = '192.168.1.3';
+  static const String _host = '192.168.240.1';
 
   // Web / laptop sendiri:
   // static const String _host = '127.0.0.1';

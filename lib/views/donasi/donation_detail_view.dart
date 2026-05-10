@@ -209,7 +209,7 @@ class _DonationDetailViewState extends State<DonationDetailView> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -449,7 +449,7 @@ class _DonationDetailViewState extends State<DonationDetailView> {
                           height: 1.4,
                         ),
                         filled: true,
-                        fillColor: Colors.white.withOpacity(0.65),
+                        fillColor: Colors.white.withValues(alpha: 0.65),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(6),
                           borderSide: BorderSide.none,

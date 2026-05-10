@@ -43,7 +43,7 @@ class _OnboardingViewState extends State<OnboardingView> {
             child: PageView.builder(
               controller: pageController,
               onPageChanged: (v) {
-                print(v.toString());
+                debugPrint(v.toString());
                 setState(() {
                   currentPage = v;
                 });
@@ -82,7 +82,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                                 duration: Duration(milliseconds: 200),
                                 curve: Curves.easeInOut,
                               );
-                              print('Skip');
+                              debugPrint('Skip');
                             },
                             child: Text(
                               currentPage == 2 ? '' : 'Skip',
@@ -205,7 +205,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                         duration: Duration(milliseconds: 200),
                         curve: Curves.easeInOut,
                       );
-                      print('Continue');
+                      debugPrint('Continue');
                     }
                   },
 

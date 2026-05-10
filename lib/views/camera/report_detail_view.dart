@@ -191,7 +191,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha :0.08),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -409,7 +409,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
         borderRadius: BorderRadius.circular(6),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 18,
             offset: const Offset(0, 6),
           ),
@@ -450,7 +450,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFFF6A00).withOpacity(0.25),
+              color: const Color(0xFFFF6A00).withValues(alpha: 0.25),
               blurRadius: 14,
               offset: const Offset(0, 6),
             ),

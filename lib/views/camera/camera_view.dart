@@ -1,12 +1,18 @@
+// import 'dart:io';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:floodcare_mobile/views/camera/report_photo_preview_view.dart';
+// import 'package:flutter/services.dart';
+// import 'package:path_provider/path_provider.dart';
+
 
 class CameraView extends StatefulWidget {
   const CameraView({super.key});
 
   @override
   State<CameraView> createState() => _CameraViewState();
+  
 }
 
 class _CameraViewState extends State<CameraView>
@@ -133,7 +139,40 @@ class _CameraViewState extends State<CameraView>
         }
       }
     }
+    // Future<void> useDummyPhoto() async {
+    //   try {
+    //     final byteData = await rootBundle.load(
+    //       'assets/images/donasi3.png',
+    //     );
 
+    //     final tempDir = await getTemporaryDirectory();
+    //     final file = File('${tempDir.path}/donasi3.png');
+
+    //     await file.writeAsBytes(
+    //       byteData.buffer.asUint8List(),
+    //       flush: true,
+    //     );
+
+    //     if (!mounted) return;
+
+    //     Navigator.push(
+    //       context,
+    //       MaterialPageRoute(
+    //         builder: (_) => ReportPhotoPreviewView(
+    //           imagePath: file.path,
+    //         ),
+    //       ),
+    //     );
+    //   } catch (e) {
+    //     if (!mounted) return;
+
+    //     ScaffoldMessenger.of(context).showSnackBar(
+    //       SnackBar(
+    //         content: Text('Gagal membuka foto dummy: $e'),
+    //       ),
+    //     );
+    //   }
+    // }
   @override
   void dispose() {
     cameraController?.dispose();
@@ -143,23 +182,86 @@ class _CameraViewState extends State<CameraView>
 
   Widget cameraPreview() {
     if (errorMessage != null) {
-      return Container(
-        color: Colors.black,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 28),
-        child: Text(
-          errorMessage!,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            height: 1.4,
-            fontFamily: 'intermedium',
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      );
-    }
+  return Container(
+    color: Colors.black,
+    alignment: Alignment.center,
+    padding: const EdgeInsets.symmetric(horizontal: 28),
+    child: Text(
+      errorMessage!,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 14,
+        height: 1.4,
+        fontFamily: 'intermedium',
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
+}
+
+//INI BUAT WAYDROID GWEH
+
+  //  if (errorMessage != null) {
+  //     return Container(
+  //       color: Colors.black,
+  //       alignment: Alignment.center,
+  //       padding: const EdgeInsets.symmetric(horizontal: 28),
+  //       child: Column(
+  //         mainAxisSize: MainAxisSize.min,
+  //         children: [
+  //           Text(
+  //             errorMessage!,
+  //             textAlign: TextAlign.center,
+  //             style: const TextStyle(
+  //               color: Colors.white,
+  //               fontSize: 14,
+  //               height: 1.4,
+  //               fontFamily: 'intermedium',
+  //               fontWeight: FontWeight.w600,
+  //             ),
+  //           ),
+
+  //           const SizedBox(height: 20),
+
+  //           GestureDetector(
+  //             onTap: useDummyPhoto,
+  //             child: Container(
+  //               height: 48,
+  //               padding: const EdgeInsets.symmetric(horizontal: 22),
+  //               decoration: BoxDecoration(
+  //                 color: const Color(0xFFFF6A00),
+  //                 borderRadius: BorderRadius.circular(28),
+  //               ),
+  //               child: const Center(
+  //                 child: Text(
+  //                   'Gunakan Foto Dummy',
+  //                   style: TextStyle(
+  //                     color: Colors.white,
+  //                     fontSize: 14,
+  //                     fontFamily: 'interbold',
+  //                     fontWeight: FontWeight.w800,
+  //                   ),
+  //                 ),
+  //               ),
+  //             ),
+  //           ),
+
+  //           const SizedBox(height: 10),
+
+  //           const Text(
+  //             'Mode ini hanya untuk testing di Waydroid',
+  //             textAlign: TextAlign.center,
+  //             style: TextStyle(
+  //               color: Colors.white70,
+  //               fontSize: 12,
+  //               fontFamily: 'interregular',
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     );
+  //   }
 
     if (!isCameraReady || cameraController == null) {
       return const ColoredBox(
@@ -269,9 +371,9 @@ class _CameraViewState extends State<CameraView>
                               ? Alignment.bottomCenter
                               : Alignment.topCenter,
                           colors: [
-                            const Color(0xFFFF6A00).withOpacity(0.85),
-                            const Color(0xFFFF6A00).withOpacity(0.35),
-                            const Color(0xFFFF6A00).withOpacity(0.05),
+                            const Color(0xFFFF6A00).withValues(alpha: 0.85),
+                            const Color(0xFFFF6A00).withValues(alpha: 0.35),
+                            const Color(0xFFFF6A00).withValues(alpha: 0.05),
                           ],
                         ),
                       ),

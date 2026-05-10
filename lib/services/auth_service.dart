@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'package:flutter/foundation.dart';
 import 'package:floodcare_mobile/config/api_config.dart';
 import 'package:floodcare_mobile/models/donation_program_model.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -69,10 +69,10 @@ class AuthService {
       final googleAuth = await googleUser.authentication;
       final idToken = googleAuth.idToken;
 
-      print('GOOGLE EMAIL: ${googleUser.email}');
-      print('GOOGLE NAME: ${googleUser.displayName}');
-      print('GOOGLE ID TOKEN: $idToken');
-      print('GOOGLE ACCESS TOKEN: ${googleAuth.accessToken}');
+      debugPrint('GOOGLE EMAIL: ${googleUser.email}');
+      debugPrint('GOOGLE NAME: ${googleUser.displayName}');
+      debugPrint('GOOGLE ID TOKEN: $idToken');
+      debugPrint('GOOGLE ACCESS TOKEN: ${googleAuth.accessToken}');
 
       if (idToken == null || idToken.isEmpty) {
         throw Exception(
@@ -90,8 +90,8 @@ class AuthService {
 
       final data = _decodeResponse(response);
 
-      print('LARAVEL STATUS: ${response.statusCode}');
-      print('LARAVEL RESPONSE: $data');
+      debugPrint('LARAVEL STATUS: ${response.statusCode}');
+      debugPrint('LARAVEL RESPONSE: $data');
 
       if (response.statusCode == 200) {
         await _saveToken(data['token']);
@@ -100,7 +100,7 @@ class AuthService {
 
       throw Exception(_extractErrorMessage(data));
     } catch (e) {
-      print('GOOGLE LOGIN ERROR: $e');
+      debugPrint('GOOGLE LOGIN ERROR: $e');
       rethrow;
     }
     

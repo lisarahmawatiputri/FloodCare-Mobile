@@ -77,7 +77,7 @@ class _EdukasiViewState extends State<EdukasiView> {
       width: width,
       height: height,
       fit: fit,
-      errorBuilder: (_, __, ___) {
+      errorBuilder: (context, error, stackTrace) {
         return Container(
           width: width,
           height: height,
@@ -239,7 +239,7 @@ class _EdukasiViewState extends State<EdukasiView> {
         color: Colors.black,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 14,
             offset: const Offset(0, 6),
           ),
@@ -261,9 +261,9 @@ class _EdukasiViewState extends State<EdukasiView> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Colors.black.withOpacity(0.92),
-                    Colors.black.withOpacity(0.76),
-                    Colors.black.withOpacity(0.35),
+                    Colors.black.withValues(alpha: 0.92),
+                    Colors.black.withValues(alpha: 0.76),
+                    Colors.black.withValues(alpha: 0.35),
                   ],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
@@ -373,7 +373,7 @@ class _EdukasiViewState extends State<EdukasiView> {
         borderRadius: BorderRadius.circular(9),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -504,7 +504,7 @@ class _EdukasiViewState extends State<EdukasiView> {
         borderRadius: BorderRadius.circular(9),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -523,7 +523,7 @@ class _EdukasiViewState extends State<EdukasiView> {
               ),
               Positioned.fill(
                 child: Container(
-                  color: Colors.black.withOpacity(0.18),
+                  color: Colors.black.withValues(alpha: 0.18),
                 ),
               ),
 
@@ -533,7 +533,7 @@ class _EdukasiViewState extends State<EdukasiView> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.75),
+                    color: Colors.white.withValues(alpha: 0.75),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -553,7 +553,7 @@ class _EdukasiViewState extends State<EdukasiView> {
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.65),
+                    color: Colors.black.withValues(alpha: 0.65),
                     borderRadius: BorderRadius.circular(5),
                   ),
                   child: Text(

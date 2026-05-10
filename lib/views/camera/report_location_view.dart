@@ -95,9 +95,11 @@ class _ReportLocationViewState extends State<ReportLocationView> {
       }
 
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.best,
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.best,
+        ),
       );
-
+      
       final latLng = LatLng(
         position.latitude,
         position.longitude,
@@ -295,7 +297,7 @@ class _ReportLocationViewState extends State<ReportLocationView> {
             boxShadow: isActive
                 ? [
                     BoxShadow(
-                      color: activeColor.withOpacity(0.22),
+                      color: activeColor.withValues(alpha: 0.22),
                       blurRadius: 12,
                       offset: const Offset(0, 5),
                     ),
@@ -394,7 +396,7 @@ class _ReportLocationViewState extends State<ReportLocationView> {
             ),
             if (isLoadingLocation)
               Container(
-                color: Colors.black.withOpacity(0.15),
+                color: Colors.black.withValues(alpha: 0.15),
                 child: const Center(
                   child: CircularProgressIndicator(
                     color: Colors.white,
@@ -414,7 +416,7 @@ class _ReportLocationViewState extends State<ReportLocationView> {
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.12),
+                        color: Colors.black.withValues(alpha: 0.12),
                         blurRadius: 12,
                         offset: const Offset(0, 5),
                       ),
@@ -612,7 +614,7 @@ class _ReportLocationViewState extends State<ReportLocationView> {
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFFF6A00).withOpacity(0.25),
+              color: const Color(0xFFFF6A00).withValues(alpha: 0.25),
               blurRadius: 14,
               offset: const Offset(0, 6),
             ),

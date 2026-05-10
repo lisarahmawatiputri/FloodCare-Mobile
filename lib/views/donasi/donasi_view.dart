@@ -198,7 +198,7 @@ class _DonasiViewState extends State<DonasiView> {
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.14),
+              color: Colors.black.withValues(alpha: 0.14),
               blurRadius: 18,
               offset: const Offset(0, 9),
             ),
@@ -215,8 +215,8 @@ class _DonasiViewState extends State<DonasiView> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Colors.black.withOpacity(0.05),
-                    Colors.black.withOpacity(0.72),
+                    Colors.black.withValues(alpha: 0.05),
+                    Colors.black.withValues(alpha: 0.72),
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -269,7 +269,7 @@ class _DonasiViewState extends State<DonasiView> {
                       value: donationViewModel.progressValue(program),
                       minHeight: 5,
                       color: lightorange,
-                      backgroundColor: Colors.white.withOpacity(0.35),
+                      backgroundColor: Colors.white.withValues(alpha: 0.35),
                     ),
                   ),
                   const SizedBox(height: 9),
@@ -349,7 +349,7 @@ class _DonasiViewState extends State<DonasiView> {
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 16,
               offset: const Offset(0, 7),
             ),
