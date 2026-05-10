@@ -1,4 +1,4 @@
-import 'package:floodcare_mobile/services/auth_service.dart';
+import 'package:floodcare_mobile/viewmodels/auth_viewmodel.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
 import 'package:floodcare_mobile/views/auth/login_view.dart';
 import 'package:floodcare_mobile/views/auth/verification_view.dart';
@@ -14,36 +14,34 @@ class ForgetPasswordView extends StatefulWidget {
 
 class _ForgetPasswordViewState extends State<ForgetPasswordView> {
   final emailController = TextEditingController();
-  final AuthService authService = AuthService();
+  final AuthViewModel authViewModel = AuthViewModel();
 
-  bool isLoading = false;
+  @override
+  void initState() {
+    super.initState();
+
+    authViewModel.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
 
   Future<void> handleForgotPassword() async {
     FocusScope.of(context).unfocus();
 
     final email = emailController.text.trim();
 
-    if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email wajib diisi')),
-      );
-      return;
-    }
+    final message = await authViewModel.forgotPassword(
+      email: email,
+    );
 
-    setState(() {
-      isLoading = true;
-    });
+    if (!mounted) return;
 
-    try {
-      final data = await authService.forgotPassword(email: email);
-
-      if (!mounted) return;
-
+    if (message != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            data['message'] ?? 'Kode OTP berhasil dikirim ke email',
-          ),
+          content: Text(message),
         ),
       );
 
@@ -55,28 +53,21 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
           ),
         ),
       );
-    } catch (e) {
-      if (!mounted) return;
-
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            e.toString().replaceFirst('Exception: ', ''),
+            authViewModel.errorMessage ?? 'Gagal mengirim kode OTP',
           ),
         ),
       );
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
     }
   }
 
   @override
   void dispose() {
     emailController.dispose();
+    authViewModel.dispose();
     super.dispose();
   }
 
@@ -211,7 +202,7 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
               const SizedBox(height: 36),
 
               GestureDetector(
-                onTap: isLoading ? null : handleForgotPassword,
+                onTap: authViewModel.isLoading ? null : handleForgotPassword,
                 child: Container(
                   height: 60,
                   width: double.infinity,
@@ -221,7 +212,7 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
                   ),
                   child: Center(
                     child: Text(
-                      isLoading ? "Sending..." : "Continue",
+                      authViewModel.isLoading ? "Sending..." : "Continue",
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontFamily: 'interbold',

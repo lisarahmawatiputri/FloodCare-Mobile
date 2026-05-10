@@ -1,4 +1,4 @@
-import 'package:floodcare_mobile/services/auth_service.dart';
+import 'package:floodcare_mobile/viewmodels/auth_viewmodel.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
 import 'package:floodcare_mobile/views/dashboard/dashboard_view.dart';
 import 'package:floodcare_mobile/views/onboarding/onboarding_view.dart';
@@ -15,102 +15,76 @@ class LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<LoginView> {
-  bool isHide = true;
-  bool isLoading = false;
+ bool isHide = true;
 
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  final AuthService authService = AuthService();
+final emailController = TextEditingController();
+final passwordController = TextEditingController();
+final AuthViewModel authViewModel = AuthViewModel();
 
-  Future<void> handleLogin() async {
-    FocusScope.of(context).unfocus();
+@override
+void initState() {
+  super.initState();
 
-    if (emailController.text.trim().isEmpty ||
-        passwordController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email dan password wajib diisi')),
-      );
-      return;
+  authViewModel.addListener(() {
+    if (mounted) {
+      setState(() {});
     }
-
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      await authService.login(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-
-      if (!mounted) return;
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const DashboardView(),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.toString().replaceFirst('Exception: ', ''),
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
-    }
-  }
-  Future<void> handleGoogleLogin() async {
+  });
+}
+ Future<void> handleLogin() async {
   FocusScope.of(context).unfocus();
 
-  setState(() {
-    isLoading = true;
-  });
+  final success = await authViewModel.login(
+    email: emailController.text,
+    password: passwordController.text,
+  );
 
-  try {
-    await authService.loginWithGoogle();
+  if (!mounted) return;
 
-    if (!mounted) return;
-
+  if (success) {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => const DashboardView(),
       ),
     );
-  } catch (e) {
-    if (!mounted) return;
-
+  } else {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          e.toString().replaceFirst('Exception: ', ''),
-        ),
+        content: Text(authViewModel.errorMessage ?? 'Login gagal'),
       ),
     );
-  } finally {
-    if (mounted) {
-      setState(() {
-        isLoading = false;
-      });
-    }
   }
 }
-  @override
-  void dispose() {
-    emailController.dispose();
-    passwordController.dispose();
-    super.dispose();
+  Future<void> handleGoogleLogin() async {
+  FocusScope.of(context).unfocus();
+
+  final success = await authViewModel.loginWithGoogle();
+
+  if (!mounted) return;
+
+  if (success) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const DashboardView(),
+      ),
+    );
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(authViewModel.errorMessage ?? 'Login Google gagal'),
+      ),
+    );
   }
+}
+ @override
+void dispose() {
+  emailController.dispose();
+  passwordController.dispose();
+  authViewModel.dispose();
+  super.dispose();
+}
 
   @override
   Widget build(BuildContext context) {
@@ -311,7 +285,7 @@ class _LoginViewState extends State<LoginView> {
               ),
               const SizedBox(height: 36),
               GestureDetector(
-                onTap: isLoading ? null : handleLogin,
+                onTap: authViewModel.isLoading ? null : handleLogin,
                 child: Container(
                   height: 60,
                   width: double.infinity,
@@ -321,7 +295,7 @@ class _LoginViewState extends State<LoginView> {
                   ),
                   child: Center(
                     child: Text(
-                      isLoading ? "Loading..." : "Sign In",
+                      authViewModel.isLoading ? "Loading..." : "Sign In",
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontFamily: 'interbold',
@@ -379,7 +353,7 @@ class _LoginViewState extends State<LoginView> {
               ),
               const SizedBox(height: 30),
               GestureDetector(
-                onTap: isLoading ? null : handleGoogleLogin,
+                onTap: authViewModel.isLoading ? null : handleGoogleLogin,
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 13.5),
                   color: Colors.transparent,
