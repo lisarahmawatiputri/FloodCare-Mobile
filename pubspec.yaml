@@ -23,6 +23,7 @@ environment:
 
 
 dependencies:
+  camera: ^0.12.0+1
   flutter:
     sdk: flutter
   flutter_launcher_icons: ^0.14.4
@@ -33,7 +34,9 @@ dependencies:
   get_x: ^5.0.0
   google_sign_in: ^6.2.1
   http: ^1.6.0
+  latlong2: ^0.9.1
   lottie: ^3.3.3
+  path_provider: ^2.1.5
   shared_preferences: ^2.5.5
   webview_flutter: ^4.13.1
   url_launcher: ^6.3.0
@@ -41,6 +44,7 @@ dependencies:
   chewie: ^1.8.5
 
 dev_dependencies:
+  flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
 

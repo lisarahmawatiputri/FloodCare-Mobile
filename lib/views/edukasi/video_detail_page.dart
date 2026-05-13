@@ -103,11 +103,9 @@ class _VideoDetailPageState extends State<VideoDetailPage> {
       backgroundColor: const Color(0xFFF8FAFC),
       body: Column(
         children: [
-          // --- VIDEO PLAYER ---
           Container(
             color: Colors.black,
             width: double.infinity,
-            // Aspect ratio 16:9
             child: AspectRatio(
               aspectRatio: 16 / 9,
               child: isInitialized

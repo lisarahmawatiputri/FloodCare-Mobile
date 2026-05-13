@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:floodcare_mobile/models/donation_program_model.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
-import 'package:floodcare_mobile/services/auth_service.dart';
-import 'package:floodcare_mobile/views/dashboard/payment_webview.dart';
+import 'package:floodcare_mobile/viewmodels/donation_viewmodel.dart';
+import 'package:floodcare_mobile/views/donasi/payment_webview.dart';
 
 class DonationDetailView extends StatefulWidget {
   final DonationProgram program;
@@ -21,9 +21,8 @@ class _DonationDetailViewState extends State<DonationDetailView> {
   final customAmountController = TextEditingController();
   final messageController = TextEditingController();
 
-  final AuthService authService = AuthService();
+  final DonationViewModel donationViewModel = DonationViewModel();
 
-  bool isLoading = false;
   bool isAnonymous = false;
   bool isCustomSelected = false;
 
@@ -37,17 +36,22 @@ class _DonationDetailViewState extends State<DonationDetailView> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+
+    donationViewModel.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
   void dispose() {
     customAmountController.dispose();
     messageController.dispose();
+    donationViewModel.dispose();
     super.dispose();
-  }
-
-  String formatRupiah(int value) {
-    return 'Rp ${value.toString().replaceAllMapped(
-          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-          (match) => '${match[1]}.',
-        )}';
   }
 
   int getFinalAmount() {
@@ -60,53 +64,45 @@ class _DonationDetailViewState extends State<DonationDetailView> {
   }
 
   Widget programImage({
-  required String image,
-  required double width,
-  required double height,
-}) {
-  const fallback = 'assets/images/donasi1.png';
+    required String image,
+    required double width,
+    required double height,
+  }) {
+    const fallback = 'assets/images/donasi1.png';
 
-  if (image.isEmpty) {
-    return Image.asset(
-      fallback,
-      width: width,
-      height: height,
-      fit: BoxFit.cover,
-    );
-  }
+    final fixedUrl = donationViewModel.fixImageUrl(image);
 
-  String fixedUrl = image;
-
-  if (fixedUrl.startsWith('http://127.0.0.1:8000')) {
-    fixedUrl = fixedUrl.replaceFirst(
-      'http://127.0.0.1:8000',
-      'http://10.0.2.2:8000',
-    );
-  } else if (!fixedUrl.startsWith('http://') &&
-      !fixedUrl.startsWith('https://')) {
-    fixedUrl = 'http://10.0.2.2:8000/storage/$fixedUrl';
-  }
-
-  return Image.network(
-    fixedUrl,
-    width: width,
-    height: height,
-    fit: BoxFit.cover,
-    errorBuilder: (context, error, stackTrace) {
-      debugPrint('Gagal load image: $fixedUrl');
-      debugPrint('Error: $error');
-
+    if (fixedUrl.isEmpty) {
       return Image.asset(
         fallback,
         width: width,
         height: height,
         fit: BoxFit.cover,
       );
-    },
-  );
-}
+    }
+
+    return Image.network(
+      fixedUrl,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        debugPrint('Gagal load image: $fixedUrl');
+        debugPrint('Error: $error');
+
+        return Image.asset(
+          fallback,
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+        );
+      },
+    );
+  }
 
   Future<void> handleContinue() async {
+    FocusScope.of(context).unfocus();
+
     final amount = getFinalAmount();
 
     if (amount < 10000) {
@@ -118,60 +114,60 @@ class _DonationDetailViewState extends State<DonationDetailView> {
       return;
     }
 
-    setState(() {
-      isLoading = true;
-    });
+    final data = await donationViewModel.createDonationPayment(
+      programDonasiId: widget.program.id,
+      amount: amount,
+      pesan: messageController.text.trim().isEmpty
+          ? null
+          : messageController.text.trim(),
+      isAnonymous: isAnonymous,
+    );
 
-    try {
-      final data = await authService.createDonationPayment(
-        programDonasiId: widget.program.id,
-        amount: amount,
-        pesan: messageController.text.trim().isEmpty
-            ? null
-            : messageController.text.trim(),
-        isAnonymous: isAnonymous,
-      );
+    if (!mounted) return;
 
-      final snapUrl = data['snap_url'];
-
-      if (snapUrl == null) {
-        throw Exception('Snap URL tidak ditemukan');
-      }
-
-      if (!mounted) return;
-
-      final result = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => PaymentWebView(snapUrl: snapUrl),
-        ),
-      );
-
-      if (!mounted) return;
-
-      if (result == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pembayaran berhasil')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pembayaran sedang diproses')),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-
+    if (data == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          content: Text(
+            donationViewModel.errorMessage ?? 'Gagal membuat pembayaran',
+          ),
         ),
       );
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
+      return;
+    }
+
+    final snapUrl = data['snap_url'];
+
+    if (snapUrl == null || snapUrl.toString().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Snap URL tidak ditemukan'),
+        ),
+      );
+      return;
+    }
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentWebView(
+          snapUrl: snapUrl.toString(),
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+
+    if (result == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pembayaran berhasil')),
+      );
+
+      Navigator.pop(context, true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pembayaran sedang diproses')),
+      );
     }
   }
 
@@ -187,21 +183,21 @@ class _DonationDetailViewState extends State<DonationDetailView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-               InkWell(
-                  borderRadius: BorderRadius.circular(100),
-                  onTap: () => Navigator.pop(context),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Icon(
-                      Icons.arrow_back,
-                      size: 26,
-                      color: Colors.black,
-                    ),
+              InkWell(
+                borderRadius: BorderRadius.circular(100),
+                onTap: () => Navigator.pop(context),
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.arrow_back,
+                    size: 26,
+                    color: Colors.black,
                   ),
                 ),
+              ),
 
-                const SizedBox(height: 16),
-              // CARD PROGRAM
+              const SizedBox(height: 16),
+
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
@@ -213,7 +209,7 @@ class _DonationDetailViewState extends State<DonationDetailView> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -235,19 +231,20 @@ class _DonationDetailViewState extends State<DonationDetailView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'DARURAT BANJIR',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFFFF4B3E),
-                              letterSpacing: 0.3,
+                          if (program.isEmergency)
+                            const Text(
+                              'DARURAT BANJIR',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFFFF4B3E),
+                                letterSpacing: 0.3,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
+                          if (program.isEmergency) const SizedBox(height: 6),
+                         Text(
                             program.title,
-                            maxLines: 3,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: 15,
@@ -256,6 +253,21 @@ class _DonationDetailViewState extends State<DonationDetailView> {
                               color: Color(0xFF1F2933),
                             ),
                           ),
+
+                          if (program.description.trim().isNotEmpty) ...[
+                            const SizedBox(height: 7),
+                            Text(
+                              program.description,
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                height: 1.45,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ],  
                         ],
                       ),
                     ),
@@ -276,7 +288,6 @@ class _DonationDetailViewState extends State<DonationDetailView> {
 
               const SizedBox(height: 14),
 
-              // NOMINAL GRID
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -314,7 +325,7 @@ class _DonationDetailViewState extends State<DonationDetailView> {
                       ),
                       child: Center(
                         child: Text(
-                          formatRupiah(amount),
+                          donationViewModel.formatRupiah(amount),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
@@ -392,7 +403,6 @@ class _DonationDetailViewState extends State<DonationDetailView> {
 
               const SizedBox(height: 22),
 
-              // PESAN DUKUNGAN
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -439,7 +449,7 @@ class _DonationDetailViewState extends State<DonationDetailView> {
                           height: 1.4,
                         ),
                         filled: true,
-                        fillColor: Colors.white.withOpacity(0.65),
+                        fillColor: Colors.white.withValues(alpha: 0.65),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(6),
                           borderSide: BorderSide.none,
@@ -484,7 +494,6 @@ class _DonationDetailViewState extends State<DonationDetailView> {
 
               const SizedBox(height: 22),
 
-              // INFO BOX
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
@@ -503,7 +512,7 @@ class _DonationDetailViewState extends State<DonationDetailView> {
                     SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Donasi Anda akan disalurkan 100% untuk pengadaan buku, alat tulis, dan fasilitas belajar darurat bagi siswa terdampak banjir.',
+                        'Donasi Anda akan disalurkan 100% untuk bantuan korban terdampak banjir.',
                         style: TextStyle(
                           fontSize: 12,
                           height: 1.55,
@@ -519,7 +528,7 @@ class _DonationDetailViewState extends State<DonationDetailView> {
               const SizedBox(height: 28),
 
               GestureDetector(
-                onTap: isLoading ? null : handleContinue,
+                onTap: donationViewModel.isLoading ? null : handleContinue,
                 child: Container(
                   height: 58,
                   width: double.infinity,
@@ -529,7 +538,9 @@ class _DonationDetailViewState extends State<DonationDetailView> {
                   ),
                   child: Center(
                     child: Text(
-                      isLoading ? 'Loading...' : 'Lanjutkan Donasi',
+                      donationViewModel.isLoading
+                          ? 'Loading...'
+                          : 'Lanjutkan Donasi',
                       style: const TextStyle(
                         fontSize: 15,
                         color: Colors.white,

@@ -1,4 +1,4 @@
-import 'package:floodcare_mobile/services/auth_service.dart';
+import 'package:floodcare_mobile/viewmodels/auth_viewmodel.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
 import 'package:floodcare_mobile/views/auth/forget_password_view.dart';
 import 'package:floodcare_mobile/views/auth/reset_password_view.dart';
@@ -16,11 +16,23 @@ class VerificationView extends StatefulWidget {
 }
 
 class _VerificationViewState extends State<VerificationView> {
-  final AuthService authService = AuthService();
+  final AuthViewModel authViewModel = AuthViewModel();
 
-  final otpControllers = List.generate(4, (_) => TextEditingController());
+  final otpControllers = List.generate(
+    4,
+    (_) => TextEditingController(),
+  );
 
-  bool isLoading = false;
+  @override
+  void initState() {
+    super.initState();
+
+    authViewModel.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
 
   String getOtp() {
     return otpControllers.map((e) => e.text).join();
@@ -31,19 +43,13 @@ class _VerificationViewState extends State<VerificationView> {
 
     final otp = getOtp();
 
-    if (otp.length != 4) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('OTP harus 4 digit')),
-      );
-      return;
-    }
+    final success = authViewModel.verifyOtp(
+      otp: otp,
+    );
 
-    setState(() {
-      isLoading = true;
-    });
+    if (!mounted) return;
 
-    try {
-
+    if (success) {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -53,17 +59,31 @@ class _VerificationViewState extends State<VerificationView> {
           ),
         ),
       );
-    } catch (e) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          content: Text(
+            authViewModel.errorMessage ?? 'OTP tidak valid',
+          ),
         ),
       );
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
     }
+  }
+
+  Future<void> handleResendOtp() async {
+    final message = await authViewModel.forgotPassword(
+      email: widget.email,
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message ?? authViewModel.errorMessage ?? 'Gagal mengirim ulang OTP',
+        ),
+      ),
+    );
   }
 
   Widget otpBox(int index) {
@@ -75,6 +95,10 @@ class _VerificationViewState extends State<VerificationView> {
         onChanged: (value) {
           if (value.length == 1 && index < 3) {
             FocusScope.of(context).nextFocus();
+          }
+
+          if (value.isEmpty && index > 0) {
+            FocusScope.of(context).previousFocus();
           }
         },
         style: const TextStyle(
@@ -89,11 +113,17 @@ class _VerificationViewState extends State<VerificationView> {
           filled: true,
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.81),
-            borderSide: BorderSide(color: grayhint, width: 1.3),
+            borderSide: BorderSide(
+              color: grayhint,
+              width: 1.3,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10.81),
-            borderSide: BorderSide(color: grayhint, width: 1.8),
+            borderSide: BorderSide(
+              color: grayhint,
+              width: 1.8,
+            ),
           ),
         ),
         inputFormatters: [
@@ -106,9 +136,11 @@ class _VerificationViewState extends State<VerificationView> {
 
   @override
   void dispose() {
-    for (var c in otpControllers) {
-      c.dispose();
+    for (var controller in otpControllers) {
+      controller.dispose();
     }
+
+    authViewModel.dispose();
     super.dispose();
   }
 
@@ -183,7 +215,7 @@ class _VerificationViewState extends State<VerificationView> {
               const SizedBox(height: 36),
 
               GestureDetector(
-                onTap: isLoading ? null : handleVerifyOtp,
+                onTap: authViewModel.isLoading ? null : handleVerifyOtp,
                 child: Container(
                   height: 60,
                   width: double.infinity,
@@ -193,7 +225,7 @@ class _VerificationViewState extends State<VerificationView> {
                   ),
                   child: Center(
                     child: Text(
-                      isLoading ? "Checking..." : "Verify OTP",
+                      authViewModel.isLoading ? "Checking..." : "Verify OTP",
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontFamily: 'interbold',
@@ -221,13 +253,7 @@ class _VerificationViewState extends State<VerificationView> {
                   ),
                   const SizedBox(width: 6),
                   GestureDetector(
-                    onTap: () async {
-                      await authService.forgotPassword(email: widget.email);
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("OTP dikirim ulang")),
-                      );
-                    },
+                    onTap: authViewModel.isLoading ? null : handleResendOtp,
                     child: Text(
                       "Resend",
                       style: TextStyle(

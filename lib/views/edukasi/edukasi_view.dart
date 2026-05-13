@@ -1,9 +1,9 @@
+import 'package:floodcare_mobile/views/edukasi/video_detail_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
-import 'package:floodcare_mobile/views/dashboard/video_detail_page.dart'; 
 
 class EdukasiView extends StatefulWidget {
   const EdukasiView({super.key});
@@ -322,7 +322,7 @@ class _EdukasiViewState extends State<EdukasiView> {
         color: Colors.black,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 14,
             offset: const Offset(0, 6),
           ),
@@ -343,9 +343,9 @@ class _EdukasiViewState extends State<EdukasiView> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Colors.black.withOpacity(0.92),
-                    Colors.black.withOpacity(0.76),
-                    Colors.black.withOpacity(0.35),
+                    Colors.black.withValues(alpha: 0.92),
+                    Colors.black.withValues(alpha: 0.76),
+                    Colors.black.withValues(alpha: 0.35),
                   ],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,

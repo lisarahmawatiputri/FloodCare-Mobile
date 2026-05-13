@@ -1,4 +1,4 @@
-import 'package:floodcare_mobile/services/auth_service.dart';
+import 'package:floodcare_mobile/viewmodels/auth_viewmodel.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
 import 'package:floodcare_mobile/views/auth/login_view.dart';
 import 'package:flutter/material.dart';
@@ -14,7 +14,6 @@ class RegisterView extends StatefulWidget {
 class _RegisterViewState extends State<RegisterView> {
   bool isHide = true;
   bool isHideConfirm = true;
-  bool isLoading = false;
 
   final namaController = TextEditingController();
   final emailController = TextEditingController();
@@ -22,44 +21,33 @@ class _RegisterViewState extends State<RegisterView> {
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
 
-  final AuthService authService = AuthService();
+  final AuthViewModel authViewModel = AuthViewModel();
+
+  @override
+  void initState() {
+    super.initState();
+
+    authViewModel.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
 
   Future<void> handleRegister() async {
     FocusScope.of(context).unfocus();
 
-    if (namaController.text.trim().isEmpty ||
-        emailController.text.trim().isEmpty ||
-        noTeleponController.text.trim().isEmpty ||
-        passwordController.text.trim().isEmpty ||
-        confirmPasswordController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Semua field wajib diisi')),
-      );
-      return;
-    }
+    final success = await authViewModel.register(
+      namaLengkap: namaController.text,
+      email: emailController.text,
+      noTelepon: noTeleponController.text,
+      password: passwordController.text,
+      passwordConfirmation: confirmPasswordController.text,
+    );
 
-    if (passwordController.text != confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Konfirmasi password tidak cocok')),
-      );
-      return;
-    }
+    if (!mounted) return;
 
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      await authService.register(
-        namaLengkap: namaController.text.trim(),
-        email: emailController.text.trim(),
-        noTelepon: noTeleponController.text.trim(),
-        password: passwordController.text.trim(),
-        passwordConfirmation: confirmPasswordController.text.trim(),
-      );
-
-      if (!mounted) return;
-
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Register berhasil, silakan login')),
       );
@@ -70,25 +58,14 @@ class _RegisterViewState extends State<RegisterView> {
           builder: (context) => const LoginView(),
         ),
       );
-    } catch (e) {
-      if (!mounted) return;
-
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            e.toString().replaceFirst('Exception: ', ''),
-          ),
+          content: Text(authViewModel.errorMessage ?? 'Register gagal'),
         ),
       );
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
     }
   }
-
   Widget buildInputLabel(String text) {
     return Text(
       text,
@@ -151,7 +128,7 @@ class _RegisterViewState extends State<RegisterView> {
       ),
     );
   }
-
+  
   @override
   void dispose() {
     namaController.dispose();
@@ -159,6 +136,7 @@ class _RegisterViewState extends State<RegisterView> {
     noTeleponController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
+    authViewModel.dispose();
     super.dispose();
   }
 
@@ -343,7 +321,7 @@ class _RegisterViewState extends State<RegisterView> {
 
               const SizedBox(height: 36),
               GestureDetector(
-                onTap: isLoading ? null : handleRegister,
+                onTap: authViewModel.isLoading ? null : handleRegister,
                 child: Container(
                   height: 60,
                   width: double.infinity,
@@ -353,7 +331,7 @@ class _RegisterViewState extends State<RegisterView> {
                   ),
                   child: Center(
                     child: Text(
-                      isLoading ? "Loading..." : "Sign Up",
+                      authViewModel.isLoading ? "Loading..." : "Sign Up",
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontFamily: 'interbold',

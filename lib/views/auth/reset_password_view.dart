@@ -1,4 +1,4 @@
-import 'package:floodcare_mobile/services/auth_service.dart';
+import 'package:floodcare_mobile/viewmodels/auth_viewmodel.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
 import 'package:floodcare_mobile/views/auth/login_view.dart';
 import 'package:flutter/material.dart';
@@ -21,54 +21,37 @@ class ResetPasswordView extends StatefulWidget {
 class _ResetPasswordViewState extends State<ResetPasswordView> {
   final passwordController = TextEditingController();
   final confirmController = TextEditingController();
-  final AuthService authService = AuthService();
+
+  final AuthViewModel authViewModel = AuthViewModel();
 
   bool isHide = true;
-  bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    authViewModel.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
 
   Future<void> handleResetPassword() async {
     FocusScope.of(context).unfocus();
 
-    final password = passwordController.text;
-    final confirm = confirmController.text;
+    final success = await authViewModel.resetPassword(
+      email: widget.email,
+      otp: widget.otp,
+      password: passwordController.text,
+      passwordConfirmation: confirmController.text,
+    );
 
-    if (password.isEmpty || confirm.isEmpty) {
+    if (!mounted) return;
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Semua field wajib diisi')),
-      );
-      return;
-    }
-
-    if (password.length < 8) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password minimal 8 karakter')),
-      );
-      return;
-    }
-
-    if (password != confirm) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password tidak sama')),
-      );
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      final data = await authService.resetPassword(
-        email: widget.email,
-        otp: widget.otp,
-        password: password,
-        passwordConfirmation: confirm,
-      );
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(data['message'] ?? 'Password berhasil diubah')),
+        const SnackBar(content: Text('Password berhasil diubah')),
       );
 
       Navigator.pushAndRemoveUntil(
@@ -76,20 +59,14 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
         MaterialPageRoute(builder: (context) => const LoginView()),
         (route) => false,
       );
-    } catch (e) {
-      if (!mounted) return;
-
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            e.toString().replaceFirst('Exception: ', ''),
+            authViewModel.errorMessage ?? 'Gagal reset password',
           ),
         ),
       );
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
     }
   }
 
@@ -135,11 +112,27 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
             });
           },
           icon: SvgPicture.asset(
-            isHide
-                ? 'assets/icons/Eyeoff.svg'
-                : 'assets/icons/Eyeon.svg',
+            isHide ? 'assets/icons/Eyeoff.svg' : 'assets/icons/Eyeon.svg',
             width: 20,
             height: 17,
+            colorFilter: const ColorFilter.mode(
+              Colors.grey,
+              BlendMode.srcIn,
+            ),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: const BorderSide(
+            color: Colors.black,
+            width: 2,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: const BorderSide(
+            color: Colors.grey,
+            width: 1,
           ),
         ),
         border: OutlineInputBorder(
@@ -153,28 +146,50 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
   void dispose() {
     passwordController.dispose();
     confirmController.dispose();
+    authViewModel.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(27),
+          padding: EdgeInsets.only(
+            top: 40,
+            left: 27,
+            right: 27,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 40),
 
               const Text(
                 'Reset Password',
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'jakartabold',
                   fontSize: 30,
+                  color: Colors.black,
                 ),
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 8),
+
+              const Text(
+                'Create a new password for your account.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'interregular',
+                  fontSize: 14,
+                  color: Colors.black,
+                ),
+              ),
+
+              const SizedBox(height: 44),
 
               passwordField(
                 controller: passwordController,
@@ -191,7 +206,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
               const SizedBox(height: 36),
 
               GestureDetector(
-                onTap: isLoading ? null : handleResetPassword,
+                onTap: authViewModel.isLoading ? null : handleResetPassword,
                 child: Container(
                   height: 60,
                   width: double.infinity,
@@ -201,10 +216,11 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                   ),
                   child: Center(
                     child: Text(
-                      isLoading ? "Loading..." : "Continue",
+                      authViewModel.isLoading ? "Loading..." : "Continue",
                       style: const TextStyle(
                         fontFamily: 'interbold',
                         fontSize: 15,
+                        fontWeight: FontWeight.w800,
                         color: Colors.white,
                       ),
                     ),
