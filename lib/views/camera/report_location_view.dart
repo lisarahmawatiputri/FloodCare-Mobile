@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
+import 'package:floodcare_mobile/viewmodels/report_viewmodel.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ReportLocationView extends StatefulWidget {
   final String imagePath;
@@ -27,11 +31,13 @@ class ReportLocationView extends StatefulWidget {
 
 class _ReportLocationViewState extends State<ReportLocationView> {
   final MapController mapController = MapController();
-  final locationNoteController = TextEditingController();
+  final TextEditingController locationNoteController = TextEditingController();
+  final ReportViewModel reportViewModel = ReportViewModel();
 
   LatLng? selectedLocation;
 
   bool isLoadingLocation = true;
+  bool isSubmitting = false;
   String? locationError;
 
   String detectedAddress = 'Memuat alamat...';
@@ -48,6 +54,30 @@ class _ReportLocationViewState extends State<ReportLocationView> {
     locationNoteController.dispose();
     super.dispose();
   }
+int? parseWaterLevelCm() {
+  final manual = widget.manualWaterLevel?.trim();
+
+  if (manual != null && manual.isNotEmpty) {
+    return int.tryParse(manual);
+  }
+
+  switch (widget.waterLevel) {
+    case '<30':
+      return 20;
+
+    case '30-80':
+      return 55;
+
+    case '80-150':
+      return 115;
+
+    case '>150':
+      return 160;
+
+    default:
+      return null;
+  }
+}
 
   Future<void> getCurrentLocation() async {
     try {
@@ -99,7 +129,7 @@ class _ReportLocationViewState extends State<ReportLocationView> {
           accuracy: LocationAccuracy.best,
         ),
       );
-      
+
       final latLng = LatLng(
         position.latitude,
         position.longitude,
@@ -133,54 +163,67 @@ class _ReportLocationViewState extends State<ReportLocationView> {
     }
   }
 
-  Future<Map<String, String>> getAddressFromLatLng(LatLng latLng) async {
-    try {
-      final placemarks = await placemarkFromCoordinates(
-        latLng.latitude,
-        latLng.longitude,
-      );
+ Future<Map<String, String>> getAddressFromLatLng(LatLng latLng) async {
+  try {
+    final placemarks = await placemarkFromCoordinates(
+      latLng.latitude,
+      latLng.longitude,
+    );
 
-      if (placemarks.isEmpty) {
-        return {
-          'address': 'Alamat tidak diketahui',
-          'region': 'Wilayah tidak diketahui',
-        };
-      }
-
-      final place = placemarks.first;
-
-      final street = place.street?.trim();
-      final subLocality = place.subLocality?.trim();
-      final locality = place.locality?.trim();
-      final subAdministrativeArea = place.subAdministrativeArea?.trim();
-      final administrativeArea = place.administrativeArea?.trim();
-
-      final address = [
-        if (street != null && street.isNotEmpty) street,
-        if (subLocality != null && subLocality.isNotEmpty) subLocality,
-      ].join(', ');
-
-      final region = [
-        if (locality != null && locality.isNotEmpty) locality,
-        if (subAdministrativeArea != null &&
-            subAdministrativeArea.isNotEmpty)
-          subAdministrativeArea,
-        if (administrativeArea != null && administrativeArea.isNotEmpty)
-          administrativeArea,
-      ].join(', ');
-
-      return {
-        'address': address.isEmpty ? 'Alamat tidak diketahui' : address,
-        'region': region.isEmpty ? 'Wilayah tidak diketahui' : region,
-      };
-    } catch (_) {
+    if (placemarks.isEmpty) {
       return {
         'address': 'Alamat tidak diketahui',
         'region': 'Wilayah tidak diketahui',
       };
     }
-  }
 
+    final place = placemarks.first;
+
+    bool isPlusCode(String text) {
+      return RegExp(r'^[A-Z0-9]{4}\+[A-Z0-9]{2,}').hasMatch(text.trim());
+    }
+
+    String? clean(String? value) {
+      if (value == null) return null;
+
+      final text = value.trim();
+
+      if (text.isEmpty) return null;
+      if (isPlusCode(text)) return null;
+
+      return text;
+    }
+
+    final street = clean(place.street);
+    final name = clean(place.name);
+    final subLocality = clean(place.subLocality);
+    final locality = clean(place.locality);
+    final subAdministrativeArea = clean(place.subAdministrativeArea);
+    final administrativeArea = clean(place.administrativeArea);
+
+    final address = [
+      street,
+      name,
+      subLocality,
+    ].whereType<String>().toSet().join(', ');
+
+    final region = [
+      locality,
+      subAdministrativeArea,
+      administrativeArea,
+    ].whereType<String>().toSet().join(', ');
+
+    return {
+      'address': address.isEmpty ? 'Alamat tidak diketahui' : address,
+      'region': region.isEmpty ? 'Wilayah tidak diketahui' : region,
+    };
+  } catch (_) {
+    return {
+      'address': 'Alamat tidak diketahui',
+      'region': 'Wilayah tidak diketahui',
+    };
+  }
+}
   void moveToCurrentLocation() {
     if (selectedLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -194,7 +237,9 @@ class _ReportLocationViewState extends State<ReportLocationView> {
     mapController.move(selectedLocation!, 16);
   }
 
-  void handleSubmitReport() {
+  Future<void> handleSubmitReport() async {
+    if (isSubmitting) return;
+
     if (selectedLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -204,29 +249,92 @@ class _ReportLocationViewState extends State<ReportLocationView> {
       return;
     }
 
-    final reportData = {
-      'image_path': widget.imagePath,
-      'title': widget.title,
-      'description': widget.description,
-      'water_level': widget.waterLevel,
-      'manual_water_level': widget.manualWaterLevel,
-      'latitude': selectedLocation!.latitude,
-      'longitude': selectedLocation!.longitude,
-      'address': detectedAddress,
-      'region': detectedRegion,
-      'location_note': locationNoteController.text.trim(),
-    };
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
 
-    debugPrint('DATA LAPORAN: $reportData');
+    if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Laporan siap dikirim'),
-      ),
+    if (token == null || token.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Token login tidak ditemukan. Silakan login ulang.'),
+        ),
+      );
+      return;
+    }
+
+    final tinggiBanjirCm = parseWaterLevelCm();
+
+    if (tinggiBanjirCm == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tinggi banjir tidak valid'),
+        ),
+      );
+      return;
+    }
+
+    final photoFile = File(widget.imagePath);
+
+    if (!await photoFile.exists()) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('File foto laporan tidak ditemukan'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      isSubmitting = true;
+    });
+
+    final alamatLokasiRaw = [
+      detectedAddress,
+      detectedRegion,
+      locationNoteController.text.trim(),
+    ].where((item) => item.isNotEmpty).join(', ');
+
+    final alamatLokasi = alamatLokasiRaw.length > 255
+        ? alamatLokasiRaw.substring(0, 255)
+        : alamatLokasiRaw;
+
+    final success = await reportViewModel.submitFloodReport(
+      photo: photoFile,
+      judul: widget.title,
+      deskripsi: widget.description,
+      latitude: selectedLocation!.latitude,
+      longitude: selectedLocation!.longitude,
+      alamatLokasi: alamatLokasi,
+      tinggiBanjirCm: tinggiBanjirCm,
+      token: token,
     );
 
-    // Nanti bagian ini bisa diganti ke API:
-    // await reportService.createReport(reportData);
+    if (!mounted) return;
+
+    setState(() {
+      isSubmitting = false;
+    });
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Laporan banjir berhasil dikirim'),
+        ),
+      );
+
+      Navigator.popUntil(context, (route) => route.isFirst);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            reportViewModel.errorMessage ?? 'Gagal mengirim laporan',
+          ),
+        ),
+      );
+    }
   }
 
   Widget stepIndicator() {
@@ -605,7 +713,7 @@ class _ReportLocationViewState extends State<ReportLocationView> {
 
   Widget submitButton() {
     return GestureDetector(
-      onTap: handleSubmitReport,
+      onTap: isSubmitting ? null : handleSubmitReport,
       child: Container(
         height: 58,
         width: double.infinity,
@@ -620,16 +728,25 @@ class _ReportLocationViewState extends State<ReportLocationView> {
             ),
           ],
         ),
-        child: const Center(
-          child: Text(
-            'Kirim Laporan',
-            style: TextStyle(
-              fontFamily: 'interbold',
-              fontSize: 15,
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+        child: Center(
+          child: isSubmitting
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.4,
+                  ),
+                )
+              : const Text(
+                  'Kirim Laporan',
+                  style: TextStyle(
+                    fontFamily: 'interbold',
+                    fontSize: 15,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
         ),
       ),
     );

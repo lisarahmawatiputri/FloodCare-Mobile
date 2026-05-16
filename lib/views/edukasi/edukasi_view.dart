@@ -1,9 +1,9 @@
-import 'package:floodcare_mobile/views/edukasi/video_detail_page.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:floodcare_mobile/models/edukasi_article_model.dart';
+import 'package:floodcare_mobile/models/edukasi_video_model.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
+import 'package:floodcare_mobile/viewmodels/edukasi_viewmodel.dart';
+import 'package:floodcare_mobile/views/edukasi/video_detail_page.dart';
 
 class EdukasiView extends StatefulWidget {
   const EdukasiView({super.key});
@@ -13,90 +13,40 @@ class EdukasiView extends StatefulWidget {
 }
 
 class _EdukasiViewState extends State<EdukasiView> {
-  int selectedCategory = 0;
-  String searchQuery = '';
+  late final EdukasiViewModel viewModel;
   final ScrollController _scrollController = ScrollController();
-
-  List<Map<String, dynamic>> articles = [];
-  List<Map<String, dynamic>> videos = [];
-  bool isLoadingArticles = true;
-  bool isLoadingVideos = true;
-
-  final List<String> categories = ['Semua', 'Artikel', 'Video'];
-
-  Future<void> _launchUrl(String urlString) async {
-    if (urlString.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('URL tidak tersedia')),
-      );
-      return;
-    }
-    final Uri uri = Uri.parse(urlString);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tidak bisa membuka halaman')),
-        );
-      }
-    }
-  }
-
-  Future<void> fetchArticles() async {
-    try {
-      final url = Uri.parse('http://192.168.1.8:8000/api/artikel');
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        setState(() {
-          articles = List<Map<String, dynamic>>.from(data);
-          isLoadingArticles = false;
-        });
-      } else {
-        setState(() => isLoadingArticles = false);
-      }
-    } catch (e) {
-      debugPrint('Error fetch artikel: $e');
-      setState(() => isLoadingArticles = false);
-    }
-  }
-
-  Future<void> fetchVideos() async {
-    try {
-      final url = Uri.parse('http://192.168.1.8:8000/api/video');
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        setState(() {
-          videos = List<Map<String, dynamic>>.from(data);
-          isLoadingVideos = false;
-        });
-      } else {
-        setState(() => isLoadingVideos = false);
-      }
-    } catch (e) {
-      debugPrint('Error fetch video: $e');
-      setState(() => isLoadingVideos = false);
-    }
-  }
 
   @override
   void initState() {
     super.initState();
-    fetchArticles();
-    fetchVideos();
+    viewModel = EdukasiViewModel();
+    viewModel.loadData();
   }
 
   @override
   void dispose() {
+    viewModel.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
   void _scrollToTop() {
+    if (!_scrollController.hasClients) return;
+
     _scrollController.animateTo(
       0,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
+    );
+  }
+
+  Future<void> _openArticle(EdukasiArticle article) async {
+    final message = await viewModel.openArticle(article);
+
+    if (!mounted || message == null) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 
@@ -106,9 +56,11 @@ class _EdukasiViewState extends State<EdukasiView> {
     required double height,
     BoxFit fit = BoxFit.cover,
   }) {
-    if (image.startsWith('http')) {
+    final mediaUrl = viewModel.getMediaUrl(image);
+
+    if (mediaUrl.startsWith('http')) {
       return Image.network(
-        image,
+        mediaUrl,
         width: width,
         height: height,
         fit: fit,
@@ -116,18 +68,24 @@ class _EdukasiViewState extends State<EdukasiView> {
           if (loadingProgress == null) return child;
           return _placeholderImage(width, height);
         },
-        errorBuilder: (context, error, stackTrace) =>
-            _placeholderImage(width, height),
+        errorBuilder: (context, error, stackTrace) {
+          return _placeholderImage(width, height);
+        },
       );
     }
-    if (image.trim().isEmpty) return _placeholderImage(width, height);
+
+    if (image.trim().isEmpty) {
+      return _placeholderImage(width, height);
+    }
+
     return Image.asset(
       image,
       width: width,
       height: height,
       fit: fit,
-      errorBuilder: (context, error, stackTrace) =>
-          _placeholderImage(width, height),
+      errorBuilder: (context, error, stackTrace) {
+        return _placeholderImage(width, height);
+      },
     );
   }
 
@@ -137,110 +95,119 @@ class _EdukasiViewState extends State<EdukasiView> {
       height: height,
       color: const Color(0xFFE5E7EB),
       child: const Center(
-        child: Icon(Icons.image_not_supported_outlined,
-            color: Color(0xFF9CA3AF), size: 34),
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          color: Color(0xFF9CA3AF),
+          size: 34,
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final filteredArticles = articles.where((a) {
-      return (a['title'] ?? '').toString().toLowerCase()
-          .contains(searchQuery.toLowerCase());
-    }).toList();
+    return AnimatedBuilder(
+      animation: viewModel,
+      builder: (context, _) {
+        final filteredArticles = viewModel.filteredArticles;
+        final filteredVideos = viewModel.filteredVideos;
 
-    final filteredVideos = videos.where((v) {
-      return (v['title'] ?? '').toString().toLowerCase()
-          .contains(searchQuery.toLowerCase());
-    }).toList();
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 110),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _searchBox(),
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 110),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _searchBox(),
+                  const SizedBox(height: 14),
 
-              const SizedBox(height: 14),
+                  _categoryTabs(),
 
-              _categoryTabs(),
+                  const SizedBox(height: 24),
 
-              const SizedBox(height: 24),
+                  if (viewModel.selectedCategory == 0) ...[
+                    _popularCard(),
+                    const SizedBox(height: 26),
+                  ],
 
-              if (selectedCategory == 0) ...[
-                _popularCard(),
-                const SizedBox(height: 26),
-              ],
-
-              // --- BAGIAN ARTIKEL ---
-              if (selectedCategory == 0 || selectedCategory == 1) ...[
-                _sectionHeader(
-                  title: 'Artikel Terbaru',
-                  showLihatSemua: selectedCategory == 0,
-                  onTap: () {
-                    setState(() => selectedCategory = 1);
-                    _scrollToTop();
-                  },
-                ),
-                const SizedBox(height: 14),
-                if (isLoadingArticles)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(20.0),
-                      child: CircularProgressIndicator(),
+                  if (viewModel.selectedCategory == 0 ||
+                      viewModel.selectedCategory == 1) ...[
+                    _sectionHeader(
+                      title: 'Artikel Terbaru',
+                      showLihatSemua: viewModel.selectedCategory == 0,
+                      onTap: () {
+                        viewModel.showArticlesOnly();
+                        _scrollToTop();
+                      },
                     ),
-                  )
-                else if (filteredArticles.isNotEmpty)
-                  ...filteredArticles.map((a) => _articleCard(a))
-                else
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20.0),
-                    child: Text('Tidak ada artikel ditemukan.',
-                        style: TextStyle(color: Colors.grey)),
-                  ),
-                const SizedBox(height: 20),
-              ],
+                    const SizedBox(height: 14),
+                    if (viewModel.isLoadingArticles)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    else if (filteredArticles.isNotEmpty)
+                      ...filteredArticles.map((article) {
+                        return _articleCard(article);
+                      })
+                    else
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Text(
+                          viewModel.articleErrorMessage ??
+                              'Tidak ada artikel ditemukan.',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                  ],
 
-              // --- BAGIAN VIDEO ---
-              if (selectedCategory == 0 || selectedCategory == 2) ...[
-                _sectionHeader(
-                  title: 'Video Terbaru',
-                  showLihatSemua: selectedCategory == 0,
-                  onTap: () {
-                    setState(() => selectedCategory = 2);
-                    _scrollToTop();
-                  },
-                ),
-                const SizedBox(height: 14),
-                if (isLoadingVideos)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(20.0),
-                      child: CircularProgressIndicator(),
+                  if (viewModel.selectedCategory == 0 ||
+                      viewModel.selectedCategory == 2) ...[
+                    _sectionHeader(
+                      title: 'Video Terbaru',
+                      showLihatSemua: viewModel.selectedCategory == 0,
+                      onTap: () {
+                        viewModel.showVideosOnly();
+                        _scrollToTop();
+                      },
                     ),
-                  )
-                else if (filteredVideos.isNotEmpty)
-                  ...filteredVideos.map((v) => _videoCard(v))
-                else
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20.0),
-                    child: Text(
-                      searchQuery.isNotEmpty
-                          ? 'Tidak ada video ditemukan.'
-                          : 'Belum ada video tersedia.',
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ),
-              ],
-            ],
+                    const SizedBox(height: 14),
+                    if (viewModel.isLoadingVideos)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    else if (filteredVideos.isNotEmpty)
+                      ...filteredVideos.map((video) {
+                        return _videoCard(video);
+                      })
+                    else
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Text(
+                          viewModel.videoErrorMessage ??
+                              (viewModel.searchQuery.isNotEmpty
+                                  ? 'Tidak ada video ditemukan.'
+                                  : 'Belum ada video tersedia.'),
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                  ],
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -259,7 +226,7 @@ class _EdukasiViewState extends State<EdukasiView> {
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
-              onChanged: (value) => setState(() => searchQuery = value),
+              onChanged: viewModel.setSearchQuery,
               decoration: const InputDecoration(
                 hintText: 'Cari materi edukasi banjir...',
                 hintStyle: TextStyle(
@@ -281,11 +248,12 @@ class _EdukasiViewState extends State<EdukasiView> {
       height: 38,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
+        itemCount: viewModel.categories.length,
         itemBuilder: (context, index) {
-          final isSelected = selectedCategory == index;
+          final isSelected = viewModel.selectedCategory == index;
+
           return GestureDetector(
-            onTap: () => setState(() => selectedCategory = index),
+            onTap: () => viewModel.setCategory(index),
             child: Container(
               width: 83,
               margin: const EdgeInsets.only(right: 10),
@@ -301,7 +269,7 @@ class _EdukasiViewState extends State<EdukasiView> {
               ),
               child: Center(
                 child: Text(
-                  categories[index],
+                  viewModel.categories[index],
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -325,7 +293,7 @@ class _EdukasiViewState extends State<EdukasiView> {
         color: Colors.black,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.black.withValues(alpha:0.08),
             blurRadius: 14,
             offset: const Offset(0, 6),
           ),
@@ -341,7 +309,6 @@ class _EdukasiViewState extends State<EdukasiView> {
               height: 178,
             ),
           ),
-
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -357,7 +324,6 @@ class _EdukasiViewState extends State<EdukasiView> {
               ),
             ),
           ),
-
           Positioned(
             left: 18,
             top: 14,
@@ -378,7 +344,6 @@ class _EdukasiViewState extends State<EdukasiView> {
               ),
             ),
           ),
-
           const Positioned(
             left: 18,
             right: 26,
@@ -395,7 +360,6 @@ class _EdukasiViewState extends State<EdukasiView> {
               ),
             ),
           ),
-
           const Positioned(
             left: 18,
             right: 24,
@@ -450,10 +414,9 @@ class _EdukasiViewState extends State<EdukasiView> {
     );
   }
 
-  Widget _articleCard(Map<String, dynamic> article) {
-    final String articleUrl = article['url']?.toString() ?? '';
+  Widget _articleCard(EdukasiArticle article) {
     return GestureDetector(
-      onTap: () => _launchUrl(articleUrl),
+      onTap: () => _openArticle(article),
       child: Container(
         margin: const EdgeInsets.only(bottom: 18),
         decoration: BoxDecoration(
@@ -461,7 +424,7 @@ class _EdukasiViewState extends State<EdukasiView> {
           borderRadius: BorderRadius.circular(9),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha:0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -474,7 +437,7 @@ class _EdukasiViewState extends State<EdukasiView> {
             Stack(
               children: [
                 safeAssetImage(
-                  image: article['image']?.toString() ?? '',
+                  image: article.image,
                   width: double.infinity,
                   height: 165,
                 ),
@@ -483,13 +446,15 @@ class _EdukasiViewState extends State<EdukasiView> {
                   top: 12,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(2),
                     ),
                     child: Text(
-                      article['category']?.toString() ?? 'ARTIKEL',
+                      article.category,
                       style: const TextStyle(
                         fontSize: 9,
                         color: Color(0xFFC65A1E),
@@ -507,11 +472,14 @@ class _EdukasiViewState extends State<EdukasiView> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today_outlined,
-                          size: 13, color: Color(0xFFCBD5E1)),
+                      const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 13,
+                        color: Color(0xFFCBD5E1),
+                      ),
                       const SizedBox(width: 4),
                       Text(
-                        article['date']?.toString() ?? '-',
+                        article.date,
                         style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFF94A3B8),
@@ -522,7 +490,7 @@ class _EdukasiViewState extends State<EdukasiView> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    article['title']?.toString() ?? 'Tanpa Judul',
+                    article.title,
                     style: const TextStyle(
                       fontSize: 18,
                       height: 1.25,
@@ -532,7 +500,9 @@ class _EdukasiViewState extends State<EdukasiView> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    article['description']?.toString() ?? 'Tidak ada deskripsi',
+                    article.description.isEmpty
+                        ? 'Tidak ada deskripsi'
+                        : article.description,
                     style: const TextStyle(
                       fontSize: 14,
                       height: 1.45,
@@ -558,9 +528,8 @@ class _EdukasiViewState extends State<EdukasiView> {
     );
   }
 
-  Widget _videoCard(Map<String, dynamic> video) {
+  Widget _videoCard(EdukasiVideo video) {
     return GestureDetector(
-      // ✅ Navigasi ke VideoDetailPage, bukan buka browser
       onTap: () {
         Navigator.push(
           context,
@@ -576,7 +545,7 @@ class _EdukasiViewState extends State<EdukasiView> {
           borderRadius: BorderRadius.circular(9),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha:0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -589,26 +558,27 @@ class _EdukasiViewState extends State<EdukasiView> {
             Stack(
               children: [
                 safeAssetImage(
-                  image: video['thumbnail']?.toString() ?? '',
+                  image: video.thumbnail,
                   width: double.infinity,
                   height: 170,
                 ),
                 Positioned.fill(
-                  child: Container(color: Colors.black.withOpacity(0.18)),
+                  child: Container(color: Colors.black.withValues(alpha:0.18)),
                 ),
-                Center(
-                  heightFactor: 3.5,
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.75),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.play_arrow_rounded,
-                      color: Colors.white,
-                      size: 36,
+                Positioned.fill(
+                  child: Center(
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha:0.75),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.play_arrow_rounded,
+                        color: Color(0xFFC65A1E),
+                        size: 36,
+                      ),
                     ),
                   ),
                 ),
@@ -617,13 +587,15 @@ class _EdukasiViewState extends State<EdukasiView> {
                   bottom: 12,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 9, vertical: 5),
+                      horizontal: 9,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.65),
+                      color: Colors.black.withValues(alpha:0.65),
                       borderRadius: BorderRadius.circular(5),
                     ),
                     child: Text(
-                      video['duration']?.toString() ?? '00:00',
+                      video.duration,
                       style: const TextStyle(
                         fontSize: 11,
                         color: Colors.white,
@@ -641,11 +613,14 @@ class _EdukasiViewState extends State<EdukasiView> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today_outlined,
-                          size: 13, color: Color(0xFFCBD5E1)),
+                      const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 13,
+                        color: Color(0xFFCBD5E1),
+                      ),
                       const SizedBox(width: 4),
                       Text(
-                        video['date']?.toString() ?? '-',
+                        video.date,
                         style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFF94A3B8),
@@ -656,7 +631,7 @@ class _EdukasiViewState extends State<EdukasiView> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    video['title']?.toString() ?? 'Tanpa Judul',
+                    video.title,
                     style: const TextStyle(
                       fontSize: 16,
                       height: 1.3,

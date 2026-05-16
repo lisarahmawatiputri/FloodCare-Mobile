@@ -39,18 +39,18 @@ class _OnboardingViewState extends State<OnboardingView> {
     return Scaffold(
       body: Column(
         children: [
-          Expanded(
-            child: PageView.builder(
-              controller: pageController,
-              onPageChanged: (v) {
-                debugPrint(v.toString());
-                setState(() {
-                  currentPage = v;
-                });
-              },
-              itemBuilder: (_, i) {
-                return Column(
-                  children: [
+        Expanded(
+          child: PageView.builder(
+            controller: pageController,
+            itemCount: onboardingData.length,
+            onPageChanged: (v) {
+              setState(() {
+                currentPage = v;
+              });
+            },
+            itemBuilder: (_, i) {
+              return Column(
+                children: [
                     Padding(
                       padding: const EdgeInsets.only(
                         top: 70,

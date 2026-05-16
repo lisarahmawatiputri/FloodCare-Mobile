@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "607192763630",
+    "project_id": "floodcare-b6adf",
+    "storage_bucket": "floodcare-b6adf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:607192763630:android:ed0076e52622455c98b7ff",
+        "android_client_info": {
+          "package_name": "com.example.floodcare_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCykh-jlAYuzHdxare2KTgMjWaX5VQQK7w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

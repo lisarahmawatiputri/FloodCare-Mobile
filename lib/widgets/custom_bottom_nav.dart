@@ -51,33 +51,53 @@ class CustomBottomNav extends StatelessWidget {
   }
 
   Widget _centerButton() {
-    return GestureDetector(
-      onTap: () => onTap(2),
-      child: Container(
-        width: 72,
-        height: 72,
-        decoration: BoxDecoration(
-          color: const Color(0xFFE86F00),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 18,
-              offset: const Offset(0, 6),
+  final bool isActive = selectedIndex == 2;
+
+  return GestureDetector(
+    onTap: () => onTap(2),
+    behavior: HitTestBehavior.opaque,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 62,
+          height: 62,
+          decoration: BoxDecoration(
+            color: const Color(0xFFE86F00),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Center(
+            child: SvgPicture.asset(
+              'assets/icons/cam.svg',
+              width: 60,
+              height: 60,
+              fit: BoxFit.contain,
             ),
-          ],
-        ),
-        child: Center(
-          child: SvgPicture.asset(
-            'assets/icons/cam.svg',
-            height: double.infinity,
           ),
         ),
-      ),
-    );
-  }
-
+        const SizedBox(height: 5),
+        Text(
+          'Laporan',
+          style: TextStyle(
+            fontFamily: 'intersemibold',
+            fontSize: 11,
+            color: isActive
+                ? const Color(0xFFE86F00)
+                : const Color(0xFF8E92C9),
+          ),
+        ),
+      ],
+    ),
+  );
+}
   @override
   Widget build(BuildContext context) {
     return  SizedBox(
@@ -130,7 +150,7 @@ class CustomBottomNav extends StatelessWidget {
             ),
           ),
           Positioned(
-            top: 5,
+            top: 0,
             child: _centerButton())
         ],
       ),
