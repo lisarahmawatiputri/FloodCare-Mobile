@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:floodcare_mobile/services/auth_service.dart';
 
+
 class AuthViewModel extends ChangeNotifier {
   final AuthService _authService = AuthService();
 
@@ -68,7 +69,7 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> register({
+    Future<bool> register({
     required String namaLengkap,
     required String email,
     required String noTelepon,
@@ -90,8 +91,28 @@ class AuthViewModel extends ChangeNotifier {
       return false;
     }
 
+      if (cleanPassword.length < 8) {
+      _setError('Password minimal 8 karakter');
+      return false;
+    }
+
+    if (!RegExp(r'[A-Z]').hasMatch(cleanPassword)) {
+      _setError('Password harus mengandung huruf besar');
+      return false;
+    }
+
+    if (!RegExp(r'[a-z]').hasMatch(cleanPassword)) {
+      _setError('Password harus mengandung huruf kecil');
+      return false;
+    }
+
+    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(cleanPassword)) {
+      _setError('Password harus mengandung simbol');
+      return false;
+    }
+
     if (cleanPassword != cleanConfirm) {
-      _setError('Konfirmasi password tidak cocok');
+      _setError('Password tidak sama');
       return false;
     }
 
@@ -154,7 +175,6 @@ class AuthViewModel extends ChangeNotifier {
     _setError(null);
     return true;
   }
-
   Future<bool> resetPassword({
     required String email,
     required String otp,
@@ -171,6 +191,21 @@ class AuthViewModel extends ChangeNotifier {
 
     if (cleanPassword.length < 8) {
       _setError('Password minimal 8 karakter');
+      return false;
+    }
+
+    if (!RegExp(r'[A-Z]').hasMatch(cleanPassword)) {
+      _setError('Password harus mengandung huruf besar');
+      return false;
+    }
+
+    if (!RegExp(r'[a-z]').hasMatch(cleanPassword)) {
+      _setError('Password harus mengandung huruf kecil');
+      return false;
+    }
+
+    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(cleanPassword)) {
+      _setError('Password harus mengandung simbol');
       return false;
     }
 
@@ -198,6 +233,62 @@ class AuthViewModel extends ChangeNotifier {
       _setLoading(false);
     }
   }
+  Future<bool> changePassword({
+  required String currentPassword,
+  required String newPassword,
+  required String confirmPassword,
+}) async {
+  final cleanNew = newPassword.trim();
+  final cleanConfirm = confirmPassword.trim();
+
+  if (cleanNew.isEmpty || cleanConfirm.isEmpty) {
+    _setError('Semua field wajib diisi');
+    return false;
+  }
+
+  if (cleanNew.length < 8) {
+    _setError('Password minimal 8 karakter');
+    return false;
+  }
+
+  if (!RegExp(r'[A-Z]').hasMatch(cleanNew)) {
+    _setError('Password harus mengandung huruf besar');
+    return false;
+  }
+
+  if (!RegExp(r'[a-z]').hasMatch(cleanNew)) {
+    _setError('Password harus mengandung huruf kecil');
+    return false;
+  }
+
+  if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(cleanNew)) {
+    _setError('Password harus mengandung simbol');
+    return false;
+  }
+
+  if (cleanNew != cleanConfirm) {
+    _setError('Konfirmasi password tidak sama');
+    return false;
+  }
+
+  try {
+    _setLoading(true);
+    _setError(null);
+
+    await _authService.changePassword(
+      currentPassword: currentPassword,
+      newPassword: cleanNew,
+      confirmPassword: cleanConfirm,
+    );
+
+    return true;
+  } catch (e) {
+    _setError(_cleanError(e));
+    return false;
+  } finally {
+    _setLoading(false);
+  }
+}
 
   Future<void> loadCurrentUser() async {
     try {

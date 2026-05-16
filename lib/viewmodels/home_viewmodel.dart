@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:floodcare_mobile/models/donation_program_model.dart';
+import 'package:floodcare_mobile/models/edukasi_article_model.dart';
+import 'package:floodcare_mobile/models/edukasi_video_model.dart';
+import 'package:floodcare_mobile/models/flood_report_model.dart';
 import 'package:floodcare_mobile/services/auth_service.dart';
 import 'package:floodcare_mobile/services/donation_service.dart';
+import 'package:floodcare_mobile/services/edukasi_service.dart';
+import 'package:floodcare_mobile/services/report_service.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeViewModel extends ChangeNotifier {
   final AuthService _authService = AuthService();
   final DonationService _donationService = DonationService();
+  final ReportService _reportService = ReportService();
+  final EdukasiService _edukasiService = EdukasiService();
 
   LatLng? currentLocation;
   bool isLoadingLocation = true;
@@ -21,11 +29,36 @@ class HomeViewModel extends ChangeNotifier {
   String? donationError;
   List<DonationProgram> donationPrograms = [];
 
+  bool isLoadingReports = false;
+  String? reportError;
+  List<FloodReport> floodReports = [];
+
+  bool isLoadingLatestArticle = false;
+  String? latestArticleError;
+  EdukasiArticle? latestArticle;
+
+  bool isLoadingLatestVideo = false;
+  String? latestVideoError;
+  EdukasiVideo? latestVideo;
+
   Future<void> initHome() async {
     await Future.wait([
       loadUserName(),
       getCurrentLocation(),
       fetchDonationPrograms(),
+      fetchFloodReports(),
+      fetchLatestArticle(),
+      fetchLatestVideo(),
+    ]);
+  }
+
+  Future<void> refreshHome() async {
+    await Future.wait([
+      getCurrentLocation(),
+      fetchDonationPrograms(),
+      fetchFloodReports(),
+      fetchLatestArticle(),
+      fetchLatestVideo(),
     ]);
   }
 
@@ -46,7 +79,7 @@ class HomeViewModel extends ChangeNotifier {
       locationError = null;
       notifyListeners();
 
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
         isLoadingLocation = false;
@@ -79,10 +112,10 @@ class HomeViewModel extends ChangeNotifier {
       }
 
       final position = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.best,
-          ),
-        );
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.best,
+        ),
+      );
 
       final userLatLng = LatLng(
         position.latitude,
@@ -157,6 +190,63 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> fetchFloodReports() async {
+    try {
+      isLoadingReports = true;
+      reportError = null;
+      notifyListeners();
+
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null || token.isEmpty) {
+        throw Exception('Token login tidak ditemukan');
+      }
+
+      floodReports = await _reportService.fetchFloodReports(
+        token: token,
+      );
+    } catch (e) {
+      reportError = e.toString().replaceFirst('Exception: ', '');
+      floodReports = [];
+    } finally {
+      isLoadingReports = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchLatestArticle() async {
+    try {
+      isLoadingLatestArticle = true;
+      latestArticleError = null;
+      notifyListeners();
+
+      latestArticle = await _edukasiService.fetchLatestArticle();
+    } catch (e) {
+      latestArticleError = e.toString().replaceFirst('Exception: ', '');
+      latestArticle = null;
+    } finally {
+      isLoadingLatestArticle = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchLatestVideo() async {
+    try {
+      isLoadingLatestVideo = true;
+      latestVideoError = null;
+      notifyListeners();
+
+      latestVideo = await _edukasiService.fetchLatestVideo();
+    } catch (e) {
+      latestVideoError = e.toString().replaceFirst('Exception: ', '');
+      latestVideo = null;
+    } finally {
+      isLoadingLatestVideo = false;
+      notifyListeners();
+    }
+  }
+
   DonationProgram? get featuredDonationProgram {
     if (donationPrograms.isEmpty) {
       return null;
@@ -166,6 +256,57 @@ class HomeViewModel extends ChangeNotifier {
       (item) => item.isEmergency,
       orElse: () => donationPrograms.first,
     );
+  }
+
+  FloodReport? get latestFloodReport {
+    if (floodReports.isEmpty) {
+      return null;
+    }
+
+    return floodReports.first;
+  }
+
+  bool get hasHighRiskFloodReport {
+    return floodReports.any((report) {
+      final risk = report.riskLevel.toLowerCase();
+      return risk == 'tinggi' || risk == 'sangat_tinggi';
+    });
+  }
+
+  String get environmentStatusText {
+    if (isLoadingReports) {
+      return 'Memuat status lingkungan sekitar Anda...';
+    }
+
+    if (reportError != null) {
+      return 'Status lingkungan sekitar belum dapat dimuat.';
+    }
+
+    if (floodReports.isEmpty) {
+      return 'Status lingkungan sekitar Anda terpantau\naman hari ini.';
+    }
+
+    if (hasHighRiskFloodReport) {
+      return 'Terdapat laporan banjir berisiko tinggi\ndi sekitar wilayah.';
+    }
+
+    return 'Status lingkungan sekitar Anda terpantau\naman hari ini.';
+  }
+
+  String get latestFloodSubtitle {
+    final report = latestFloodReport;
+
+    if (report == null) {
+      return 'Belum ada laporan banjir terbaru';
+    }
+
+    final risk = report.riskLevel.replaceAll('_', ' ');
+
+    if (report.waterLevelCm > 0) {
+      return 'Ketinggian ${report.waterLevelCm} cm • Risiko $risk';
+    }
+
+    return 'Risiko banjir $risk';
   }
 
   String formatRupiah(int value) {

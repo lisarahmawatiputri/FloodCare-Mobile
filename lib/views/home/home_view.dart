@@ -1,5 +1,8 @@
-import 'package:floodcare_mobile/viewmodels/home_viewmodel.dart';
+import 'package:floodcare_mobile/models/edukasi_article_model.dart';
+import 'package:floodcare_mobile/models/edukasi_video_model.dart';
+import 'package:floodcare_mobile/models/flood_report_model.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
+import 'package:floodcare_mobile/viewmodels/home_viewmodel.dart';
 import 'package:floodcare_mobile/views/donasi/donation_detail_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -15,39 +18,6 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   final MapController mapController = MapController();
   final HomeViewModel homeViewModel = HomeViewModel();
-
-  final List<Map<String, dynamic>> laporanList = [
-    {
-      'image':
-          'https://images.unsplash.com/photo-1547683905-f686c993aae5?q=80&w=800&auto=format&fit=crop',
-      'date': 'RABU, 15 APRIL 2025',
-      'title': 'Patrang Regency',
-      'subtitle': 'Genangan sedang teramati di jalan',
-      'dateColor': const Color(0xFFD94A4A),
-      'icon': Icons.water_drop,
-      'iconColor': const Color(0xFFD94A4A),
-    },
-    {
-      'image':
-          'https://images.unsplash.com/photo-1547683905-f686c993aae5?q=80&w=800&auto=format&fit=crop',
-      'date': 'RABU, 15 APRIL 2025',
-      'title': 'Sekitar RS DR. Soebandi',
-      'subtitle': 'Risiko luapan sungai tinggi',
-      'dateColor': const Color(0xFFD94A4A),
-      'icon': Icons.warning_amber_rounded,
-      'iconColor': const Color(0xFFD94A4A),
-    },
-    {
-      'image':
-          'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=800&auto=format&fit=crop',
-      'date': 'SELASA, 14 APRIL 2025',
-      'title': 'Jalan Mastrip',
-      'subtitle': 'Air sudah surut. Jalan sudah bersih',
-      'dateColor': const Color(0xFF3B82F6),
-      'icon': Icons.check_circle_outline,
-      'iconColor': const Color(0xFF3B82F6),
-    },
-  ];
 
   @override
   void initState() {
@@ -76,7 +46,8 @@ class _HomeViewState extends State<HomeView> {
   void dispose() {
     homeViewModel.dispose();
     super.dispose();
-    }
+  }
+
   void moveToCurrentLocation() {
     final location = homeViewModel.currentLocation;
 
@@ -91,7 +62,77 @@ class _HomeViewState extends State<HomeView> {
 
     mapController.move(location, 16);
   }
-  Widget _buildLaporanCard(Map<String, dynamic> item) {
+
+  Color _riskColor(String riskLevel) {
+    final risk = riskLevel.toLowerCase();
+
+    if (risk == 'tinggi' || risk == 'sangat_tinggi') {
+      return const Color(0xFFD94A4A);
+    }
+
+    if (risk == 'sedang') {
+      return const Color(0xFFF59E0B);
+    }
+
+    return const Color(0xFF3B82F6);
+  }
+
+  IconData _riskIcon(String riskLevel) {
+    final risk = riskLevel.toLowerCase();
+
+    if (risk == 'tinggi' || risk == 'sangat_tinggi') {
+      return Icons.warning_amber_rounded;
+    }
+
+    if (risk == 'sedang') {
+      return Icons.water_drop;
+    }
+
+    return Icons.check_circle_outline;
+  }
+
+  List<Marker> _buildMapMarkers() {
+    final markers = <Marker>[];
+
+    if (homeViewModel.currentLocation != null) {
+      markers.add(
+        Marker(
+          point: homeViewModel.currentLocation!,
+          width: 40,
+          height: 40,
+          child: const Icon(
+            Icons.location_on,
+            color: Colors.red,
+            size: 34,
+          ),
+        ),
+      );
+    }
+
+    for (final report in homeViewModel.floodReports) {
+      if (report.latitude == 0 || report.longitude == 0) continue;
+
+      markers.add(
+        Marker(
+          point: LatLng(report.latitude, report.longitude),
+          width: 42,
+          height: 42,
+          child: Icon(
+            _riskIcon(report.riskLevel),
+            color: _riskColor(report.riskLevel),
+            size: 34,
+          ),
+        ),
+      );
+    }
+
+    return markers;
+  }
+
+  Widget _buildLaporanCard(FloodReport item) {
+    final color = _riskColor(item.riskLevel);
+    final icon = _riskIcon(item.riskLevel);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(12),
@@ -104,18 +145,25 @@ class _HomeViewState extends State<HomeView> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: Image.network(
-              item['image'],
-              width: 72,
-              height: 72,
-              fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(
-                width: 72,
-                height: 72,
-                color: Colors.grey.shade300,
-                child: const Icon(Icons.image_not_supported_outlined),
-              ),
-            ),
+            child: item.imageUrl.isNotEmpty
+                ? Image.network(
+                    item.imageUrl,
+                    width: 72,
+                    height: 72,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 72,
+                      height: 72,
+                      color: Colors.grey.shade300,
+                      child: const Icon(Icons.image_not_supported_outlined),
+                    ),
+                  )
+                : Container(
+                    width: 72,
+                    height: 72,
+                    color: Colors.grey.shade300,
+                    child: const Icon(Icons.image_not_supported_outlined),
+                  ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -125,16 +173,20 @@ class _HomeViewState extends State<HomeView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item['date'],
+                    item.createdAt.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 11,
                       fontFamily: 'interbold',
-                      color: item['dateColor'],
+                      color: color,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    item['title'],
+                    item.address.isNotEmpty ? item.address : item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 15,
                       fontFamily: 'jakartabold',
@@ -143,7 +195,11 @@ class _HomeViewState extends State<HomeView> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    item['subtitle'],
+                    item.waterLevelCm > 0
+                        ? 'Ketinggian ${item.waterLevelCm} cm • Risiko ${item.riskLevel.replaceAll('_', ' ')}'
+                        : item.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 13,
                       fontFamily: 'intermedium',
@@ -158,13 +214,89 @@ class _HomeViewState extends State<HomeView> {
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Icon(
-              item['icon'],
+              icon,
               size: 18,
-              color: item['iconColor'],
+              color: color,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLaporanSection() {
+    if (homeViewModel.isLoadingReports &&
+        homeViewModel.floodReports.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 18),
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (homeViewModel.reportError != null &&
+        homeViewModel.floodReports.isEmpty) {
+      return Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF1F1),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          children: [
+            const Text(
+              'Gagal memuat laporan banjir',
+              style: TextStyle(
+                fontFamily: 'jakartabold',
+                fontSize: 14,
+                color: Color(0xFFD94A4A),
+              ),
+            ),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: homeViewModel.fetchFloodReports,
+              child: const Text(
+                'Coba Lagi',
+                style: TextStyle(
+                  fontFamily: 'interbold',
+                  fontSize: 13,
+                  color: Color(0xFFC65A1E),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (homeViewModel.floodReports.isEmpty) {
+      return Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF6F6F8),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Text(
+          'Belum ada laporan banjir terbaru',
+          style: TextStyle(
+            fontFamily: 'intersemibold',
+            fontSize: 14,
+            color: Color(0xFF6D6D6D),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: homeViewModel.floodReports
+          .take(3)
+          .map(_buildLaporanCard)
+          .toList(),
     );
   }
 
@@ -227,6 +359,8 @@ class _HomeViewState extends State<HomeView> {
           const SizedBox(height: 24),
           Text(
             title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 14,
               fontFamily: 'jakartabold',
@@ -237,12 +371,73 @@ class _HomeViewState extends State<HomeView> {
           const SizedBox(height: 8),
           Text(
             subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 12,
               fontFamily: 'intermedium',
               color: Color(0xFF4C8A5F),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildArticleCard(EdukasiArticle? article) {
+    if (homeViewModel.isLoadingLatestArticle && article == null) {
+      return _buildEduCard(
+        backgroundColor: const Color(0xFFE6F3E8),
+        iconColor: const Color(0xFF6BCB77),
+        badgeColor: const Color(0xFFDDF7E3),
+        title: 'Memuat artikel...',
+        subtitle: 'Artikel',
+        icon: Icons.description_outlined,
+        badgeText: 'BARU',
+      );
+    }
+
+    return _buildEduCard(
+      backgroundColor: const Color(0xFFE6F3E8),
+      iconColor: const Color(0xFF6BCB77),
+      badgeColor: const Color(0xFFDDF7E3),
+      title: article?.title ?? 'Belum ada artikel terbaru',
+      subtitle: 'Artikel • ${article?.date ?? '-'}',
+      icon: Icons.description_outlined,
+      badgeText: 'BARU',
+    );
+  }
+
+  Widget _buildVideoCard(EdukasiVideo? video) {
+    if (homeViewModel.isLoadingLatestVideo && video == null) {
+      return _buildEduCard(
+        backgroundColor: const Color(0xFFFFEFE2),
+        iconColor: const Color(0xFFF28C28),
+        badgeColor: const Color(0xFFFFF1E6),
+        title: 'Memuat video...',
+        subtitle: 'Video',
+        icon: Icons.play_circle_outline_rounded,
+      );
+    }
+
+    return _buildEduCard(
+      backgroundColor: const Color(0xFFFFEFE2),
+      iconColor: const Color(0xFFF28C28),
+      badgeColor: const Color(0xFFFFF1E6),
+      title: video?.title ?? 'Belum ada video terbaru',
+      subtitle: 'Video • ${video?.duration ?? '-'}',
+      icon: Icons.play_circle_outline_rounded,
+    );
+  }
+
+  Widget _buildEdukasiSection() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildArticleCard(homeViewModel.latestArticle),
+          const SizedBox(width: 14),
+          _buildVideoCard(homeViewModel.latestVideo),
         ],
       ),
     );
@@ -431,43 +626,47 @@ class _HomeViewState extends State<HomeView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F5F4),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 120),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Halo, ${homeViewModel.userName}',
-                style: const TextStyle(
-                  fontSize: 30,
-                  fontFamily: 'jakartaextrabold',
-                  color: Colors.black,
+        child: RefreshIndicator(
+          onRefresh: homeViewModel.refreshHome,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 120),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Halo, ${homeViewModel.userName}',
+                  style: const TextStyle(
+                    fontSize: 30,
+                    fontFamily: 'jakartaextrabold',
+                    color: Colors.black,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Status lingkungan sekitar Anda terpantau\naman hari ini.',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontFamily: 'interregular',
-                  color: Colors.black,
-                  height: 1.4,
+                const SizedBox(height: 6),
+                Text(
+                  homeViewModel.environmentStatusText,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontFamily: 'interregular',
+                    color: Colors.black,
+                    height: 1.4,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 18),
-              Container(
-                height: 255,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Stack(
+                const SizedBox(height: 18),
+                Container(
+                  height: 255,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
                     children: [
                       FlutterMap(
                         mapController: mapController,
                         options: MapOptions(
-                          initialCenter: homeViewModel.currentLocation ?? fallbackLocation,
+                          initialCenter:
+                              homeViewModel.currentLocation ?? fallbackLocation,
                           initialZoom: 15,
                           interactionOptions: const InteractionOptions(
                             flags: InteractiveFlag.drag |
@@ -480,27 +679,15 @@ class _HomeViewState extends State<HomeView> {
                             urlTemplate:
                                 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
                             subdomains: const ['mt0', 'mt1', 'mt2', 'mt3'],
-                            userAgentPackageName: 'com.example.floodcare_mobile',
+                            userAgentPackageName:
+                                'com.example.floodcare_mobile',
                             maxZoom: 22,
                           ),
-                          if (homeViewModel.currentLocation != null)
-                            MarkerLayer(
-                              markers: [
-                                Marker(
-                                  point: homeViewModel.currentLocation!,
-                                  width: 40,
-                                  height: 40,
-                                  child: const Icon(
-                                    Icons.location_on,
-                                    color: Colors.red,
-                                    size: 34,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          MarkerLayer(
+                            markers: _buildMapMarkers(),
+                          ),
                         ],
                       ),
-
                       Positioned(
                         top: 16,
                         left: 16,
@@ -540,7 +727,6 @@ class _HomeViewState extends State<HomeView> {
                           ),
                         ),
                       ),
-
                       Positioned(
                         top: 16,
                         right: 16,
@@ -568,7 +754,6 @@ class _HomeViewState extends State<HomeView> {
                           ),
                         ),
                       ),
-
                       Positioned(
                         left: 16,
                         right: 16,
@@ -600,39 +785,16 @@ class _HomeViewState extends State<HomeView> {
                         ),
                       ),
                     ],
-                  )
-              ),
-              const SizedBox(height: 24),
-              ...laporanList.map(_buildLaporanCard),
-              const SizedBox(height: 10),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _buildEduCard(
-                      backgroundColor: const Color(0xFFE6F3E8),
-                      iconColor: const Color(0xFF6BCB77),
-                      badgeColor: const Color(0xFFDDF7E3),
-                      title: 'Tips evakuasi saat banjir bandang',
-                      subtitle: 'Artikel • 3 menit baca',
-                      icon: Icons.description_outlined,
-                      badgeText: 'BARU',
-                    ),
-                    const SizedBox(width: 14),
-                    _buildEduCard(
-                      backgroundColor: const Color(0xFFFFEFE2),
-                      iconColor: const Color(0xFFF28C28),
-                      badgeColor: const Color(0xFFFFF1E6),
-                      title: 'Cara menghadapi bencana banjir',
-                      subtitle: 'Video • 4:15 menit',
-                      icon: Icons.play_circle_outline_rounded,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              _buildDonasiCard(context),
-            ],
+                const SizedBox(height: 24),
+                _buildLaporanSection(),
+                const SizedBox(height: 10),
+                _buildEdukasiSection(),
+                const SizedBox(height: 24),
+                _buildDonasiCard(context),
+              ],
+            ),
           ),
         ),
       ),

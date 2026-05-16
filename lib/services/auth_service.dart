@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:floodcare_mobile/config/api_config.dart';
 import 'package:floodcare_mobile/models/donation_program_model.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class AuthService {
   String get baseUrl => ApiConfig.baseUrl;
@@ -32,11 +34,79 @@ class AuthService {
 
     if (response.statusCode == 200) {
       await _saveToken(data['token']);
+      await updateFcmToken();
       return data;
     }
 
     throw Exception(_extractErrorMessage(data));
   }
+  Future<void> updateFcmToken() async {
+  final token = await getToken();
+
+  if (token == null || token.isEmpty) {
+    return;
+  }
+
+  final fcmToken = await FirebaseMessaging.instance.getToken();
+
+  if (fcmToken == null || fcmToken.isEmpty) {
+    return;
+  }
+
+  final response = await http.post(
+    Uri.parse('$baseUrl/fcm-token'),
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode({
+      'fcm_token': fcmToken,
+    }),
+  );
+
+  if (response.statusCode != 200) {
+    final data = _decodeResponse(response);
+    throw Exception(_extractErrorMessage(data));
+  }
+}
+  Future<Map<String, dynamic>> updateProfilePhoto({
+  required File photo,
+    }) async {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception('Token tidak ditemukan. Silakan login ulang.');
+      }
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/profile/photo'),
+      );
+
+      request.headers.addAll({
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      });
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'foto_profil',
+          photo.path,
+        ),
+      );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      final data = _decodeResponse(response);
+
+      if (response.statusCode == 200) {
+        return data;
+      }
+
+      throw Exception(_extractErrorMessage(data));
+    }
   Future<Map<String, dynamic>> forgotPassword({
     required String email,
   }) async {
@@ -95,6 +165,7 @@ class AuthService {
 
       if (response.statusCode == 200) {
         await _saveToken(data['token']);
+        await updateFcmToken();
         return data;
       }
 
@@ -271,6 +342,82 @@ class AuthService {
         'message': response.body,
       };
     }
+  }
+  Future<void> verifyCurrentPassword({
+  required String currentPassword,
+}) async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('token');
+
+  if (token == null || token.isEmpty) {
+    throw Exception('Token login tidak ditemukan. Silakan login ulang.');
+  }
+
+  final response = await http.post(
+    Uri.parse('${ApiConfig.baseUrl}/verify-password'),
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode({
+      'current_password': currentPassword,
+    }),
+  );
+
+    final body = response.body.isNotEmpty ? jsonDecode(response.body) : {};
+
+    if (response.statusCode == 200) {
+      return;
+    }
+
+    if (body is Map<String, dynamic>) {
+      if (body['errors'] != null) {
+        final errors = body['errors'] as Map<String, dynamic>;
+        final firstError = errors.values.first;
+
+        if (firstError is List && firstError.isNotEmpty) {
+          throw Exception(firstError.first.toString());
+        }
+      }
+
+      throw Exception(body['message'] ?? 'Password lama tidak valid');
+    }
+
+    throw Exception('Password lama tidak valid');
+  }
+    Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    final token = await getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('Token login tidak ditemukan. Silakan login ulang.');
+    }
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/change-password'),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'current_password': currentPassword,
+        'password': newPassword,
+        'password_confirmation': confirmPassword,
+      }),
+    );
+
+    final data = _decodeResponse(response);
+
+    if (response.statusCode == 200) {
+      return;
+    }
+
+    throw Exception(_extractErrorMessage(data));
   }
     Future<Map<String, dynamic>> resetPassword({
       required String email,

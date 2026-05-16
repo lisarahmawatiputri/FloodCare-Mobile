@@ -115,13 +115,7 @@ class _CameraViewState extends State<CameraView>
             ),
           );
 
-          // Nanti di sini bisa diarahkan ke form laporan:
-          // Navigator.push(
-          //   context,
-          //   MaterialPageRoute(
-          //     builder: (_) => ReportFormView(imagePath: result),
-          //   ),
-          // );
+     
         }
       } catch (e) {
         if (!mounted) return;
@@ -199,69 +193,6 @@ class _CameraViewState extends State<CameraView>
     ),
   );
 }
-
-//INI BUAT WAYDROID GWEH
-
-  //  if (errorMessage != null) {
-  //     return Container(
-  //       color: Colors.black,
-  //       alignment: Alignment.center,
-  //       padding: const EdgeInsets.symmetric(horizontal: 28),
-  //       child: Column(
-  //         mainAxisSize: MainAxisSize.min,
-  //         children: [
-  //           Text(
-  //             errorMessage!,
-  //             textAlign: TextAlign.center,
-  //             style: const TextStyle(
-  //               color: Colors.white,
-  //               fontSize: 14,
-  //               height: 1.4,
-  //               fontFamily: 'intermedium',
-  //               fontWeight: FontWeight.w600,
-  //             ),
-  //           ),
-
-  //           const SizedBox(height: 20),
-
-  //           GestureDetector(
-  //             onTap: useDummyPhoto,
-  //             child: Container(
-  //               height: 48,
-  //               padding: const EdgeInsets.symmetric(horizontal: 22),
-  //               decoration: BoxDecoration(
-  //                 color: const Color(0xFFFF6A00),
-  //                 borderRadius: BorderRadius.circular(28),
-  //               ),
-  //               child: const Center(
-  //                 child: Text(
-  //                   'Gunakan Foto Dummy',
-  //                   style: TextStyle(
-  //                     color: Colors.white,
-  //                     fontSize: 14,
-  //                     fontFamily: 'interbold',
-  //                     fontWeight: FontWeight.w800,
-  //                   ),
-  //                 ),
-  //               ),
-  //             ),
-  //           ),
-
-  //           const SizedBox(height: 10),
-
-  //           const Text(
-  //             'Mode ini hanya untuk testing di Waydroid',
-  //             textAlign: TextAlign.center,
-  //             style: TextStyle(
-  //               color: Colors.white70,
-  //               fontSize: 12,
-  //               fontFamily: 'interregular',
-  //             ),
-  //           ),
-  //         ],
-  //       ),
-  //     );
-  //   }
 
     if (!isCameraReady || cameraController == null) {
       return const ColoredBox(
