@@ -4,6 +4,7 @@ import 'package:floodcare_mobile/services/auth_service.dart';
 import 'package:floodcare_mobile/views/profile/biodata_view.dart';
 import 'package:floodcare_mobile/views/profile/logout_confirm_view.dart';
 import 'package:floodcare_mobile/views/profile/verify_password_view.dart';
+import 'package:floodcare_mobile/views/profile/riwayat_laporan_view.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -269,6 +270,22 @@ class _ProfileViewState extends State<ProfileView> {
                       subtitle: 'Lihat informasi profil Anda',
                       onTap: () => openBiodata(user ?? {}),
                     ),
+                    const SizedBox(height: 12),
+                    _ProfileMenuItem(
+                    icon: Icons.assignment_outlined,
+                    iconColor: const Color(0xFF22C55E),
+                    iconBackground: const Color(0xFFDCFCE7),
+                    title: 'Riwayat Laporan',
+                    subtitle: 'Lihat laporan yang pernah dikirim',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const RiwayatLaporanView(),
+                            ),
+                          );
+                        },
+                        ),
                     const SizedBox(height: 12),
                     if (!googleUser) ...[
                       _ProfileMenuItem(

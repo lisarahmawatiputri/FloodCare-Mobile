@@ -193,27 +193,30 @@ class _BiodataViewState extends State<BiodataView> {
       isSaving = true;
     });
 
-    await Future.delayed(const Duration(milliseconds: 600));
+    try {
+      await authService.updateProfile(
+    namaLengkap: name,
+    noTelepon: phone.isEmpty ? null : phone,
+    alamat: address.isEmpty ? null : address,
+  );
 
     if (!mounted) return;
 
-    setState(() {
-      isSaving = false;
-    });
+    ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Biodata berhasil disimpan')),
+  );
 
-    debugPrint('BIODATA UPDATE: {'
-        'name: $name, '
-        'email: $email, '
-        'phone: $phone, '
-        'address: $address'
-        '}');
+  Navigator.pop(context);
+} catch (e) {
+  if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Biodata siap disimpan ke API'),
-      ),
-    );
+    SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+  );
+  } finally {
+  if (mounted) setState(() => isSaving = false);
   }
+}
 
   Widget profilePhoto() {
     final hasPhoto = photoUrl != null && photoUrl!.isNotEmpty;

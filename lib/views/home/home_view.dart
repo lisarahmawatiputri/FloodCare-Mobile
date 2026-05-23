@@ -4,6 +4,7 @@ import 'package:floodcare_mobile/models/flood_report_model.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
 import 'package:floodcare_mobile/viewmodels/home_viewmodel.dart';
 import 'package:floodcare_mobile/views/donasi/donation_detail_view.dart';
+import 'package:floodcare_mobile/views/dashboard/detail_laporan_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -133,7 +134,19 @@ class _HomeViewState extends State<HomeView> {
     final color = _riskColor(item.riskLevel);
     final icon = _riskIcon(item.riskLevel);
 
-    return Container(
+    return GestureDetector(
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DetailLaporanView(
+          laporanId: item.id,
+          judulAwal: item.title,
+        ),
+      ),
+    );
+  },
+  child: Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -217,10 +230,11 @@ class _HomeViewState extends State<HomeView> {
               icon,
               size: 18,
               color: color,
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      )
     );
   }
 
