@@ -485,4 +485,37 @@ class AuthService {
 
     return 'Terjadi kesalahan';
   }
+  Future<Map<String, dynamic>> updateProfile({
+  required String namaLengkap,
+  String? noTelepon,
+  String? alamat,
+}) async {
+  final token = await getToken();
+
+  if (token == null) {
+    throw Exception('Token tidak ditemukan. Silakan login ulang.');
+  }
+
+  final response = await http.put(
+    Uri.parse('$baseUrl/profile/update'),
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+    body: jsonEncode({
+      'nama_lengkap': namaLengkap,
+      'no_telepon': noTelepon,
+      'alamat': alamat,
+    }),
+  );
+
+  final data = _decodeResponse(response);
+
+  if (response.statusCode == 200) {
+    return data;
+  }
+
+  throw Exception(_extractErrorMessage(data));
+  }
 }
