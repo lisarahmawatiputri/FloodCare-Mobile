@@ -6,12 +6,10 @@ import 'package:flutter_svg/svg.dart';
 
 class ResetPasswordView extends StatefulWidget {
   final String email;
-  final String otp;
 
   const ResetPasswordView({
     super.key,
     required this.email,
-    required this.otp,
   });
 
   @override
@@ -42,7 +40,6 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
 
     final success = await authViewModel.resetPassword(
       email: widget.email,
-      otp: widget.otp,
       password: passwordController.text,
       passwordConfirmation: confirmController.text,
     );
@@ -77,6 +74,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
     return TextFormField(
       controller: controller,
       obscureText: isHide,
+      enabled: !authViewModel.isLoading,
       style: const TextStyle(
         fontFamily: 'interregular',
         fontSize: 14,
@@ -106,11 +104,18 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
           ),
         ),
         suffixIcon: IconButton(
-          onPressed: () {
-            setState(() {
-              isHide = !isHide;
-            });
-          },
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(
+            minWidth: 40,
+            minHeight: 40,
+          ),
+          onPressed: authViewModel.isLoading
+              ? null
+              : () {
+                  setState(() {
+                    isHide = !isHide;
+                  });
+                },
           icon: SvgPicture.asset(
             isHide ? 'assets/icons/Eyeoff.svg' : 'assets/icons/Eyeon.svg',
             width: 20,
@@ -135,8 +140,56 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
             width: 1,
           ),
         ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: const BorderSide(
+            color: Colors.grey,
+            width: 1,
+          ),
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
+        ),
+      ),
+    );
+  }
+
+  Widget continueButton() {
+    return GestureDetector(
+      onTap: authViewModel.isLoading ? null : handleResetPassword,
+      child: Container(
+        height: 60,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: orangeGradient,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF6A00).withValues(alpha: 0.25),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Center(
+          child: authViewModel.isLoading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.4,
+                  ),
+                )
+              : const Text(
+                  "Continue",
+                  style: TextStyle(
+                    fontFamily: 'interbold',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
         ),
       ),
     );
@@ -205,28 +258,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
 
               const SizedBox(height: 36),
 
-              GestureDetector(
-                onTap: authViewModel.isLoading ? null : handleResetPassword,
-                child: Container(
-                  height: 60,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: orangeGradient,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Center(
-                    child: Text(
-                      authViewModel.isLoading ? "Loading..." : "Continue",
-                      style: const TextStyle(
-                        fontFamily: 'interbold',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              continueButton(),
             ],
           ),
         ),

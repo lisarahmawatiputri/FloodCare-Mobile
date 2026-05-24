@@ -9,21 +9,33 @@ import 'firebase_options.dart';
 final FlutterLocalNotificationsPlugin localNotifications =
     FlutterLocalNotificationsPlugin();
 
+int notificationId = 0;
+
+const String floodAlertChannelId = 'flood_alert_channel';
+const String floodHighChannelId = 'flood_high_channel';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  print('=== FLOODCARE MAIN JALAN ===');
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  print('=== FIREBASE BERHASIL INIT ===');
+
   await initNotification();
   await initLocalNotification();
   await getFCMToken();
 
+  print('=== SEMUA INIT SELESAI ===');
+
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    debugPrint('NOTIF MASUK FOREGROUND');
+    debugPrint('=== NOTIF MASUK FOREGROUND ===');
     debugPrint('TITLE: ${message.notification?.title}');
     debugPrint('BODY: ${message.notification?.body}');
+    debugPrint('DATA: ${message.data}');
 
     showLocalNotification(message);
   });
@@ -51,11 +63,11 @@ Future<void> initLocalNotification() async {
   );
 
   await localNotifications.initialize(
-  settings: initSettings,
-);
+    settings: initSettings,
+  );
 
-  const androidChannel = AndroidNotificationChannel(
-    'flood_alert_channel',
+  const floodAlertChannel = AndroidNotificationChannel(
+    floodAlertChannelId,
     'Flood Alert',
     description: 'Notifikasi peringatan banjir',
     importance: Importance.high,
@@ -63,29 +75,73 @@ Future<void> initLocalNotification() async {
     sound: RawResourceAndroidNotificationSound('flood_alert'),
   );
 
-  await localNotifications
-      .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(androidChannel);
+  const floodHighChannel = AndroidNotificationChannel(
+    floodHighChannelId,
+    'Flood High Alert',
+    description: 'Notifikasi peringatan banjir tinggi dan sangat tinggi',
+    importance: Importance.high,
+    playSound: true,
+    sound: RawResourceAndroidNotificationSound('flood_high'),
+  );
+
+  final androidPlugin =
+      localNotifications.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
+  await androidPlugin?.createNotificationChannel(floodAlertChannel);
+  await androidPlugin?.createNotificationChannel(floodHighChannel);
+}
+
+bool isHighFlood(RemoteMessage message) {
+  final String title = message.notification?.title ?? '';
+  final String body = message.notification?.body ?? '';
+  final String dataText = message.data.values.join(' ');
+
+  final String fullText = '$title $body $dataText'
+      .toLowerCase()
+      .trim()
+      .replaceAll('_', ' ')
+      .replaceAll('-', ' ');
+
+  debugPrint('CEK LEVEL BANJIR: $fullText');
+
+  return fullText.contains('sangat tinggi') || fullText.contains('tinggi');
 }
 
 Future<void> showLocalNotification(RemoteMessage message) async {
-  const androidDetails = AndroidNotificationDetails(
-    'flood_alert_channel',
-    'Flood Alert',
-    channelDescription: 'Notifikasi peringatan banjir',
+  final bool highFlood = isHighFlood(message);
+
+  final String channelId =
+      highFlood ? floodHighChannelId : floodAlertChannelId;
+
+  final String channelName =
+      highFlood ? 'Flood High Alert' : 'Flood Alert';
+
+  final String channelDescription = highFlood
+      ? 'Notifikasi peringatan banjir tinggi dan sangat tinggi'
+      : 'Notifikasi peringatan banjir';
+
+  final String soundName = highFlood ? 'flood_high' : 'flood_alert';
+
+  final androidDetails = AndroidNotificationDetails(
+    channelId,
+    channelName,
+    channelDescription: channelDescription,
     importance: Importance.max,
     priority: Priority.max,
     playSound: true,
     enableVibration: true,
-    sound: RawResourceAndroidNotificationSound('flood_alert'),
+    sound: RawResourceAndroidNotificationSound(soundName),
   );
 
-  const notificationDetails = NotificationDetails(
+  final notificationDetails = NotificationDetails(
     android: androidDetails,
   );
+
+  notificationId++;
+
   await localNotifications.show(
-    id: 0,
+    id: notificationId,
     title: message.notification?.title ?? 'Peringatan Banjir',
     body: message.notification?.body ?? 'Ada laporan banjir terbaru',
     notificationDetails: notificationDetails,

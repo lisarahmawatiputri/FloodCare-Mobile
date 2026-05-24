@@ -15,76 +15,121 @@ class LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<LoginView> {
- bool isHide = true;
+  bool isHide = true;
 
-final emailController = TextEditingController();
-final passwordController = TextEditingController();
-final AuthViewModel authViewModel = AuthViewModel();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  final AuthViewModel authViewModel = AuthViewModel();
 
-@override
-void initState() {
-  super.initState();
+  @override
+  void initState() {
+    super.initState();
 
-  authViewModel.addListener(() {
-    if (mounted) {
-      setState(() {});
+    authViewModel.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  Future<void> handleLogin() async {
+    FocusScope.of(context).unfocus();
+
+    final success = await authViewModel.login(
+      email: emailController.text,
+      password: passwordController.text,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const DashboardView(),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authViewModel.errorMessage ?? 'Login gagal'),
+        ),
+      );
     }
-  });
-}
- Future<void> handleLogin() async {
-  FocusScope.of(context).unfocus();
-
-  final success = await authViewModel.login(
-    email: emailController.text,
-    password: passwordController.text,
-  );
-
-  if (!mounted) return;
-
-  if (success) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const DashboardView(),
-      ),
-    );
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(authViewModel.errorMessage ?? 'Login gagal'),
-      ),
-    );
   }
-}
+
   Future<void> handleGoogleLogin() async {
-  FocusScope.of(context).unfocus();
+    FocusScope.of(context).unfocus();
 
-  final success = await authViewModel.loginWithGoogle();
+    final success = await authViewModel.loginWithGoogle();
 
-  if (!mounted) return;
+    if (!mounted) return;
 
-  if (success) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const DashboardView(),
-      ),
-    );
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(authViewModel.errorMessage ?? 'Login Google gagal'),
+    if (success) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const DashboardView(),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authViewModel.errorMessage ?? 'Login Google gagal'),
+        ),
+      );
+    }
+  }
+
+  Widget signInButton() {
+    return GestureDetector(
+      onTap: authViewModel.isLoading ? null : handleLogin,
+      child: Container(
+        height: 60,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: orangeGradient,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF6A00).withValues(alpha: 0.25),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Center(
+          child: authViewModel.isLoading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.4,
+                  ),
+                )
+              : const Text(
+                  "Sign In",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'interbold',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+        ),
       ),
     );
   }
-}
- @override
-void dispose() {
-  emailController.dispose();
-  passwordController.dispose();
-  authViewModel.dispose();
-  super.dispose();
-}
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    authViewModel.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +152,7 @@ void dispose() {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => OnboardingView(),
+                      builder: (context) => const OnboardingView(),
                     ),
                   );
                 },
@@ -116,7 +161,9 @@ void dispose() {
                   child: SvgPicture.asset('assets/icons/BackAuth.svg'),
                 ),
               ),
+
               const SizedBox(height: 20),
+
               const Text(
                 'Welcome Back!',
                 style: TextStyle(
@@ -125,7 +172,9 @@ void dispose() {
                   color: Colors.black,
                 ),
               ),
+
               const SizedBox(height: 8),
+
               const Text(
                 'Please enter your credentials to access the\nFloodCare dashboard.',
                 style: TextStyle(
@@ -134,7 +183,9 @@ void dispose() {
                   color: Colors.black,
                 ),
               ),
+
               const SizedBox(height: 44),
+
               Text(
                 "Email Address",
                 style: TextStyle(
@@ -144,7 +195,9 @@ void dispose() {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+
               const SizedBox(height: 8),
+
               TextFormField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -197,7 +250,9 @@ void dispose() {
                   ),
                 ),
               ),
+
               const SizedBox(height: 19),
+
               Text(
                 "Password",
                 style: TextStyle(
@@ -207,7 +262,9 @@ void dispose() {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+
               const SizedBox(height: 8),
+
               TextFormField(
                 controller: passwordController,
                 obscureText: isHide,
@@ -283,38 +340,20 @@ void dispose() {
                   ),
                 ),
               ),
+
               const SizedBox(height: 36),
-              GestureDetector(
-                onTap: authViewModel.isLoading ? null : handleLogin,
-                child: Container(
-                  height: 60,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: orangeGradient,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Center(
-                    child: Text(
-                      authViewModel.isLoading ? "Loading..." : "Sign In",
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: 'interbold',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+
+              signInButton(),
+
               const SizedBox(height: 25),
+
               Center(
                 child: InkWell(
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ForgetPasswordView(),
+                        builder: (context) => const ForgetPasswordView(),
                       ),
                     );
                   },
@@ -332,9 +371,11 @@ void dispose() {
                   ),
                 ),
               ),
+
               const SizedBox(height: 30),
-              Row(
-                children: const [
+
+              const Row(
+                children: [
                   Expanded(child: Divider()),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 25),
@@ -351,7 +392,9 @@ void dispose() {
                   Expanded(child: Divider()),
                 ],
               ),
+
               const SizedBox(height: 30),
+
               GestureDetector(
                 onTap: authViewModel.isLoading ? null : handleGoogleLogin,
                 child: Container(
@@ -377,7 +420,9 @@ void dispose() {
                   ),
                 ),
               ),
+
               const SizedBox(height: 50),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

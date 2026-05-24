@@ -66,6 +66,7 @@ class _RegisterViewState extends State<RegisterView> {
       );
     }
   }
+
   Widget buildInputLabel(String text) {
     return Text(
       text,
@@ -128,7 +129,49 @@ class _RegisterViewState extends State<RegisterView> {
       ),
     );
   }
-  
+
+  Widget signUpButton() {
+    return GestureDetector(
+      onTap: authViewModel.isLoading ? null : handleRegister,
+      child: Container(
+        height: 60,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: orangeGradient,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF6A00).withValues(alpha: 0.25),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Center(
+          child: authViewModel.isLoading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.4,
+                  ),
+                )
+              : const Text(
+                  "Sign Up",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'interbold',
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                    color: Colors.white,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     namaController.dispose();
@@ -170,7 +213,9 @@ class _RegisterViewState extends State<RegisterView> {
                   child: SvgPicture.asset('assets/icons/BackAuth.svg'),
                 ),
               ),
+
               const SizedBox(height: 20),
+
               const Text(
                 'Create Account!',
                 style: TextStyle(
@@ -179,7 +224,9 @@ class _RegisterViewState extends State<RegisterView> {
                   color: Colors.black,
                 ),
               ),
+
               const SizedBox(height: 8),
+
               const Text(
                 'Step into the FloodCare network.',
                 style: TextStyle(
@@ -188,10 +235,13 @@ class _RegisterViewState extends State<RegisterView> {
                   color: Colors.black,
                 ),
               ),
+
               const SizedBox(height: 44),
 
               buildInputLabel("Full Name"),
+
               const SizedBox(height: 8),
+
               TextFormField(
                 controller: namaController,
                 style: const TextStyle(
@@ -206,8 +256,11 @@ class _RegisterViewState extends State<RegisterView> {
               ),
 
               const SizedBox(height: 19),
+
               buildInputLabel("Email Address"),
+
               const SizedBox(height: 8),
+
               TextFormField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -223,8 +276,11 @@ class _RegisterViewState extends State<RegisterView> {
               ),
 
               const SizedBox(height: 19),
+
               buildInputLabel("Phone Number"),
+
               const SizedBox(height: 8),
+
               TextFormField(
                 controller: noTeleponController,
                 keyboardType: TextInputType.phone,
@@ -240,8 +296,11 @@ class _RegisterViewState extends State<RegisterView> {
               ),
 
               const SizedBox(height: 19),
+
               buildInputLabel("Password"),
+
               const SizedBox(height: 8),
+
               TextFormField(
                 controller: passwordController,
                 obscureText: isHide,
@@ -280,8 +339,11 @@ class _RegisterViewState extends State<RegisterView> {
               ),
 
               const SizedBox(height: 19),
+
               buildInputLabel("Confirm Password"),
+
               const SizedBox(height: 8),
+
               TextFormField(
                 controller: confirmPasswordController,
                 obscureText: isHideConfirm,
@@ -320,76 +382,11 @@ class _RegisterViewState extends State<RegisterView> {
               ),
 
               const SizedBox(height: 36),
-              GestureDetector(
-                onTap: authViewModel.isLoading ? null : handleRegister,
-                child: Container(
-                  height: 60,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: orangeGradient,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Center(
-                    child: Text(
-                      authViewModel.isLoading ? "Loading..." : "Sign Up",
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: 'interbold',
-                        fontWeight: FontWeight.w800,
-                        fontSize: 15,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
 
-              // const SizedBox(height: 30),
-              // Row(
-              //   children: const [
-              //     Expanded(child: Divider()),
-              //     Padding(
-              //       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              //       child: Text(
-              //         'OR CONTINUE WITH',
-              //         textAlign: TextAlign.center,
-              //         style: TextStyle(
-              //           fontFamily: 'intermedium',
-              //           fontSize: 12,
-              //           color: Colors.brown,
-              //         ),
-              //       ),
-              //     ),
-              //     Expanded(child: Divider()),
-              //   ],
-              // ),
-              // const SizedBox(height: 32),
-              // GestureDetector(
-              //   onTap: () {},
-              //   child: Container(
-              //     padding: const EdgeInsets.symmetric(vertical: 13.5),
-              //     color: Colors.transparent,
-              //     child: Center(
-              //       child: Row(
-              //         mainAxisAlignment: MainAxisAlignment.center,
-              //         children: [
-              //           SvgPicture.asset('assets/icons/Google.svg'),
-              //           const SizedBox(width: 11),
-              //           Text(
-              //             "Sign In with Google",
-              //             textAlign: TextAlign.center,
-              //             style: TextStyle(
-              //               fontFamily: 'intersemibold',
-              //               fontSize: 16,
-              //               color: bluegoogletext,
-              //             ),
-              //           ),
-              //         ],
-              //       ),
-              //     ),
-              //   ),
-              // ),
+              signUpButton(),
+
               const SizedBox(height: 30),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

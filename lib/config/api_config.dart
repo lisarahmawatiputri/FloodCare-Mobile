@@ -3,7 +3,7 @@ class ApiConfig {
   // static const String host = 'http://10.0.2.2:8000';
 
   // Kalau test di HP fisik, ganti jadi IP laptop kamu, contoh:
-  static const String host = 'http://192.168.1.8:8000';
+  static const String host = 'http://localhost:8000';
 
   // Kalau test Flutter Web/Chrome lokal, pakai:
   // static const String host = 'http://127.0.0.1:8000';

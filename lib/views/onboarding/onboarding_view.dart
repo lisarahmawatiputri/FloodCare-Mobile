@@ -2,7 +2,7 @@ import 'package:floodcare_mobile/utils/colors.dart';
 import 'package:floodcare_mobile/views/auth/login_view.dart';
 import 'package:flutter/material.dart';
 
-List onboardingData = [
+List<Map<String, String>> onboardingData = [
   {
     "images": "assets/images/Onboarding1.png",
     "title": "Pantau Banjir Real-Time",
@@ -35,22 +35,92 @@ class _OnboardingViewState extends State<OnboardingView> {
   int currentPage = 0;
 
   @override
+  void dispose() {
+    pageController.dispose();
+    super.dispose();
+  }
+
+  void handleNext() {
+    if (currentPage == 2) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (BuildContext context) => const LoginView(),
+        ),
+      );
+    } else {
+      pageController.animateToPage(
+        currentPage + 1,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+      );
+
+      debugPrint('Continue');
+    }
+  }
+
+  Widget bulletIndicator(int index) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        color: currentPage == index ? lightorange : graybullet,
+        borderRadius: BorderRadius.circular(1000),
+      ),
+      height: 9,
+      width: 9,
+    );
+  }
+
+  Widget primaryButton() {
+    return GestureDetector(
+      onTap: handleNext,
+      child: Container(
+        width: 325,
+        height: 44,
+        decoration: BoxDecoration(
+          gradient: orangeGradient,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF6A00).withValues(alpha: 0.25),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            currentPage == 2 ? 'Get Started' : 'Continue',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'interbold',
+              fontSize: 15,
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
         children: [
-        Expanded(
-          child: PageView.builder(
-            controller: pageController,
-            itemCount: onboardingData.length,
-            onPageChanged: (v) {
-              setState(() {
-                currentPage = v;
-              });
-            },
-            itemBuilder: (_, i) {
-              return Column(
-                children: [
+          Expanded(
+            child: PageView.builder(
+              controller: pageController,
+              itemCount: onboardingData.length,
+              onPageChanged: (v) {
+                setState(() {
+                  currentPage = v;
+                });
+              },
+              itemBuilder: (_, i) {
+                return Column(
+                  children: [
                     Padding(
                       padding: const EdgeInsets.only(
                         top: 70,
@@ -61,15 +131,16 @@ class _OnboardingViewState extends State<OnboardingView> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           i == 0
-                              ? SizedBox(width: 18)
+                              ? const SizedBox(width: 18)
                               : GestureDetector(
                                   onTap: () {
                                     pageController.previousPage(
-                                      duration: Duration(milliseconds: 200),
+                                      duration:
+                                          const Duration(milliseconds: 200),
                                       curve: Curves.easeInOut,
                                     );
                                   },
-                                  child: Icon(
+                                  child: const Icon(
                                     Icons.arrow_back_ios_new,
                                     size: 18,
                                     color: Colors.black,
@@ -79,14 +150,15 @@ class _OnboardingViewState extends State<OnboardingView> {
                             onTap: () {
                               pageController.animateToPage(
                                 2,
-                                duration: Duration(milliseconds: 200),
+                                duration: const Duration(milliseconds: 200),
                                 curve: Curves.easeInOut,
                               );
+
                               debugPrint('Skip');
                             },
                             child: Text(
                               currentPage == 2 ? '' : 'Skip',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontFamily: 'intermedium',
                                 fontSize: 15,
                                 color: Colors.black,
@@ -96,20 +168,24 @@ class _OnboardingViewState extends State<OnboardingView> {
                         ],
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(
+
+                    const Padding(
+                      padding: EdgeInsets.only(
                         top: 75,
                         left: 222,
                         right: 222,
                         bottom: 35,
                       ),
                     ),
+
                     Image.asset(
-                      onboardingData[i]['images'],
+                      onboardingData[i]['images']!,
                       height: 331,
                       width: 349,
                     ),
-                    Spacer(),
+
+                    const Spacer(),
+
                     Column(
                       children: [
                         Padding(
@@ -119,17 +195,18 @@ class _OnboardingViewState extends State<OnboardingView> {
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 15),
                                 child: Text(
-                                  onboardingData[i]['title'],
-                                  style: TextStyle(
+                                  onboardingData[i]['title']!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
                                     fontFamily: 'jakartaextrabold',
                                     fontSize: 24,
                                   ),
                                 ),
                               ),
                               Text(
-                                onboardingData[i]['desc'],
+                                onboardingData[i]['desc']!,
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontFamily: 'interregular',
                                   fontSize: 15,
                                   color: Colors.black,
@@ -145,7 +222,9 @@ class _OnboardingViewState extends State<OnboardingView> {
               },
             ),
           ),
-          SizedBox(height: 35),
+
+          const SizedBox(height: 35),
+
           Column(
             children: [
               Padding(
@@ -153,36 +232,9 @@ class _OnboardingViewState extends State<OnboardingView> {
                 child: Wrap(
                   spacing: 6,
                   children: [
-                    AnimatedContainer(
-                      duration: Duration(milliseconds: 200),
-                      curve: Curves.easeInOut,
-                      decoration: BoxDecoration(
-                        color: currentPage == 0 ? lightorange : graybullet,
-                        borderRadius: BorderRadius.circular(1000),
-                      ),
-                      height: 9,
-                      width: 9,
-                    ),
-                    AnimatedContainer(
-                      duration: Duration(milliseconds: 200),
-                      curve: Curves.easeInOut,
-                      decoration: BoxDecoration(
-                        color: currentPage == 1 ? lightorange : graybullet,
-                        borderRadius: BorderRadius.circular(1000),
-                      ),
-                      height: 9,
-                      width: 9,
-                    ),
-                    AnimatedContainer(
-                      duration: Duration(milliseconds: 200),
-                      curve: Curves.easeInOut,
-                      decoration: BoxDecoration(
-                        color: currentPage == 2 ? lightorange : graybullet,
-                        borderRadius: BorderRadius.circular(1000),
-                      ),
-                      height: 9,
-                      width: 9,
-                    ),
+                    bulletIndicator(0),
+                    bulletIndicator(1),
+                    bulletIndicator(2),
                   ],
                 ),
               ),
@@ -191,44 +243,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                   horizontal: 20,
                   vertical: 20,
                 ),
-                child: GestureDetector(
-                  onTap: () {
-                    if (currentPage == 2) {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (BuildContext context) => const LoginView(),
-                        ),
-                      );
-                    } else {
-                      pageController.animateToPage(
-                        currentPage + 1,
-                        duration: Duration(milliseconds: 200),
-                        curve: Curves.easeInOut,
-                      );
-                      debugPrint('Continue');
-                    }
-                  },
-
-                  child: Container(
-                    width: 325,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      gradient: orangeGradient,
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: Center(
-                      child: Text(
-                        currentPage == 2 ? "Get Started" : "Continue",
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontFamily: 'intermedium',
-                          fontSize: 15,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                child: primaryButton(),
               ),
             ],
           ),

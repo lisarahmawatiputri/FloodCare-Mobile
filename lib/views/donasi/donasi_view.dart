@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:floodcare_mobile/models/donation_program_model.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
 import 'package:floodcare_mobile/viewmodels/donation_viewmodel.dart';
 import 'package:floodcare_mobile/views/donasi/donation_detail_view.dart';
-import 'dart:async';
+import 'package:floodcare_mobile/views/donasi/donation_history_view.dart';
 
 class DonasiView extends StatefulWidget {
   const DonasiView({super.key});
@@ -15,6 +17,7 @@ class DonasiView extends StatefulWidget {
 class _DonasiViewState extends State<DonasiView> {
   final DonationViewModel donationViewModel = DonationViewModel();
   final TextEditingController searchController = TextEditingController();
+
   Timer? refreshTimer;
 
   String searchQuery = '';
@@ -38,6 +41,7 @@ class _DonasiViewState extends State<DonasiView> {
     });
 
     donationViewModel.fetchDonationPrograms();
+
     refreshTimer = Timer.periodic(
       const Duration(seconds: 10),
       (_) {
@@ -45,6 +49,7 @@ class _DonasiViewState extends State<DonasiView> {
       },
     );
   }
+
   @override
   void dispose() {
     refreshTimer?.cancel();
@@ -58,6 +63,19 @@ class _DonasiViewState extends State<DonasiView> {
       context,
       MaterialPageRoute(
         builder: (_) => DonationDetailView(program: program),
+      ),
+    );
+
+    if (!mounted) return;
+
+    await donationViewModel.fetchDonationPrograms();
+  }
+
+  Future<void> openDonationHistory() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const DonationHistoryView(),
       ),
     );
 
@@ -181,6 +199,93 @@ class _DonasiViewState extends State<DonasiView> {
             horizontal: 12,
             vertical: 12,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget donationHistoryButton() {
+    return GestureDetector(
+      onTap: openDonationHistory,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(top: 18),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: const Color(0xFFFFE2C8),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF6A00).withValues(alpha: 0.10),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                gradient: orangeGradient,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFF6A00).withValues(alpha: 0.22),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.receipt_long_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 13),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Riwayat Donasi',
+                    style: TextStyle(
+                      fontFamily: 'interbold',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1F2933),
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Lihat status dan lanjutkan pembayaran',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'interregular',
+                      fontSize: 12,
+                      color: Color(0xFF6B7280),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: lightorange,
+            ),
+          ],
         ),
       ),
     );
@@ -381,12 +486,12 @@ class _DonasiViewState extends State<DonasiView> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  ClipRRect(
+                 ClipRRect(
                     borderRadius: BorderRadius.circular(100),
                     child: LinearProgressIndicator(
                       value: progress,
                       minHeight: 5,
-                      color: const Color(0xFF4B49B6),
+                      color: lightorange,
                       backgroundColor: const Color(0xFFEFF2F5),
                     ),
                   ),
@@ -506,50 +611,52 @@ class _DonasiViewState extends State<DonasiView> {
   }
 
   @override
-Widget build(BuildContext context) {
-  final List<DonationProgram> displayedPrograms = filteredProgramsBySearch;
+  Widget build(BuildContext context) {
+    final List<DonationProgram> displayedPrograms = filteredProgramsBySearch;
 
-  final DonationProgram? latestProgram =
-      displayedPrograms.isEmpty ? null : displayedPrograms.first;
+    final DonationProgram? latestProgram =
+        displayedPrograms.isEmpty ? null : displayedPrograms.first;
 
-  final List<DonationProgram> otherPrograms = displayedPrograms.length > 1
-      ? displayedPrograms.sublist(1)
-      : <DonationProgram>[];
+    final List<DonationProgram> otherPrograms = displayedPrograms.length > 1
+        ? displayedPrograms.sublist(1)
+        : <DonationProgram>[];
 
-  return Scaffold(
-    backgroundColor: const Color(0xFFF8FAFC),
-    body: SafeArea(
-      child: Builder(
-        builder: (context) {
-          if (donationViewModel.isLoading &&
-              donationViewModel.programs.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: Builder(
+          builder: (context) {
+            if (donationViewModel.isLoading &&
+                donationViewModel.programs.isEmpty) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
 
-          if (donationViewModel.errorMessage != null &&
-              donationViewModel.programs.isEmpty) {
-            return errorState();
-          }
+            if (donationViewModel.errorMessage != null &&
+                donationViewModel.programs.isEmpty) {
+              return errorState();
+            }
 
-          return RefreshIndicator(
-            onRefresh: donationViewModel.fetchDonationPrograms,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Bantu Sesama',
-                    style: TextStyle(
-                      fontFamily: 'jakartaextrabold',
-                      fontSize: 28,
-                      color: Color(0xFF1F2933),
+            return RefreshIndicator(
+              onRefresh: donationViewModel.fetchDonationPrograms,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Bantu Sesama',
+                      style: TextStyle(
+                        fontFamily: 'jakartaextrabold',
+                        fontSize: 28,
+                        color: Color(0xFF1F2933),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
+
+                    const SizedBox(height: 6),
+
                   const Text(
                     'Pilih program donasi aktif untuk membantu pemulihan pasca banjir.',
                     style: TextStyle(
@@ -559,24 +666,30 @@ Widget build(BuildContext context) {
                       color: Color(0xFF6B7280),
                     ),
                   ),
+
                   const SizedBox(height: 24),
+
                   buildSearchBar(),
+
+                  donationHistoryButton(),
+
                   const SizedBox(height: 28),
-                  if (donationViewModel.programs.isEmpty)
-                    emptyState()
-                  else if (displayedPrograms.isEmpty)
-                    searchEmptyState()
-                  else ...[
-                    if (latestProgram != null) featuredCard(latestProgram),
-                    ...otherPrograms.map(programListCard),
+
+                    if (donationViewModel.programs.isEmpty)
+                      emptyState()
+                    else if (displayedPrograms.isEmpty)
+                      searchEmptyState()
+                    else ...[
+                      if (latestProgram != null) featuredCard(latestProgram),
+                      ...otherPrograms.map(programListCard),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

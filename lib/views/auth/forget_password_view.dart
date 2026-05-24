@@ -64,6 +64,48 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
     }
   }
 
+  Widget continueButton() {
+    return GestureDetector(
+      onTap: authViewModel.isLoading ? null : handleForgotPassword,
+      child: Container(
+        height: 60,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: orangeGradient,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF6A00).withValues(alpha: 0.25),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Center(
+          child: authViewModel.isLoading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.4,
+                  ),
+                )
+              : const Text(
+                  "Continue",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'interbold',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     emailController.dispose();
@@ -201,29 +243,7 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
 
               const SizedBox(height: 36),
 
-              GestureDetector(
-                onTap: authViewModel.isLoading ? null : handleForgotPassword,
-                child: Container(
-                  height: 60,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: orangeGradient,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Center(
-                    child: Text(
-                      authViewModel.isLoading ? "Sending..." : "Continue",
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: 'interbold',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              continueButton(),
             ],
           ),
         ),

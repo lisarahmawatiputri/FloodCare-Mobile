@@ -43,7 +43,8 @@ class _VerificationViewState extends State<VerificationView> {
 
     final otp = getOtp();
 
-    final success = authViewModel.verifyOtp(
+    final success = await authViewModel.verifyOtp(
+      email: widget.email,
       otp: otp,
     );
 
@@ -55,7 +56,6 @@ class _VerificationViewState extends State<VerificationView> {
         MaterialPageRoute(
           builder: (context) => ResetPasswordView(
             email: widget.email,
-            otp: otp,
           ),
         ),
       );
@@ -63,7 +63,7 @@ class _VerificationViewState extends State<VerificationView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            authViewModel.errorMessage ?? 'OTP tidak valid',
+            authViewModel.errorMessage ?? 'Kode OTP salah.',
           ),
         ),
       );
@@ -71,6 +71,8 @@ class _VerificationViewState extends State<VerificationView> {
   }
 
   Future<void> handleResendOtp() async {
+    FocusScope.of(context).unfocus();
+
     final message = await authViewModel.forgotPassword(
       email: widget.email,
     );
@@ -92,6 +94,7 @@ class _VerificationViewState extends State<VerificationView> {
       width: 64.88,
       child: TextField(
         controller: otpControllers[index],
+        enabled: !authViewModel.isLoading,
         onChanged: (value) {
           if (value.length == 1 && index < 3) {
             FocusScope.of(context).nextFocus();
@@ -125,6 +128,13 @@ class _VerificationViewState extends State<VerificationView> {
               width: 1.8,
             ),
           ),
+          disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10.81),
+            borderSide: BorderSide(
+              color: grayhint,
+              width: 1.3,
+            ),
+          ),
         ),
         inputFormatters: [
           LengthLimitingTextInputFormatter(1),
@@ -134,9 +144,51 @@ class _VerificationViewState extends State<VerificationView> {
     );
   }
 
+  Widget verifyButton() {
+    return GestureDetector(
+      onTap: authViewModel.isLoading ? null : handleVerifyOtp,
+      child: Container(
+        height: 60,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: orangeGradient,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF6A00).withValues(alpha: 0.25),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Center(
+          child: authViewModel.isLoading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.4,
+                  ),
+                )
+              : const Text(
+                  "Verify OTP",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'interbold',
+                    fontSize: 15,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
-    for (var controller in otpControllers) {
+    for (final controller in otpControllers) {
       controller.dispose();
     }
 
@@ -161,14 +213,16 @@ class _VerificationViewState extends State<VerificationView> {
             children: [
               InkWell(
                 borderRadius: BorderRadius.circular(1000),
-                onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ForgetPasswordView(),
-                    ),
-                  );
-                },
+                onTap: authViewModel.isLoading
+                    ? null
+                    : () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ForgetPasswordView(),
+                          ),
+                        );
+                      },
                 child: Padding(
                   padding: const EdgeInsets.only(right: 1),
                   child: SvgPicture.asset('assets/icons/BackAuth.svg'),
@@ -214,29 +268,7 @@ class _VerificationViewState extends State<VerificationView> {
 
               const SizedBox(height: 36),
 
-              GestureDetector(
-                onTap: authViewModel.isLoading ? null : handleVerifyOtp,
-                child: Container(
-                  height: 60,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: orangeGradient,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Center(
-                    child: Text(
-                      authViewModel.isLoading ? "Checking..." : "Verify OTP",
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: 'interbold',
-                        fontSize: 15,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              verifyButton(),
 
               const SizedBox(height: 16),
 

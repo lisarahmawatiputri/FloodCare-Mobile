@@ -1,8 +1,9 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:floodcare_mobile/views/camera/report_location_view.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
+import 'package:floodcare_mobile/views/camera/report_location_view.dart';
 
 class ReportDetailView extends StatefulWidget {
   final String imagePath;
@@ -38,19 +39,62 @@ class _ReportDetailViewState extends State<ReportDetailView> {
     super.dispose();
   }
 
+  int? _getFinalWaterLevelCm() {
+    final manualValue = manualWaterLevelController.text.trim();
+
+    if (manualValue.isNotEmpty) {
+      return int.tryParse(manualValue);
+    }
+
+    switch (selectedWaterLevel) {
+      case '<30':
+        return 29;
+      case '30-80':
+        return 55;
+      case '80-150':
+        return 115;
+      case '>150':
+        return 151;
+      default:
+        return null;
+    }
+  }
+
+  String _getFinalWaterLevelLabel() {
+    final manualValue = manualWaterLevelController.text.trim();
+
+    if (manualValue.isNotEmpty || selectedWaterLevel == 'manual') {
+      return 'manual';
+    }
+
+    return selectedWaterLevel;
+  }
+
   void handleContinue() {
     FocusScope.of(context).unfocus();
 
-    if (titleController.text.trim().isEmpty) {
+    final title = titleController.text.trim();
+    final description = descriptionController.text.trim();
+    final finalWaterLevelCm = _getFinalWaterLevelCm();
+    final finalWaterLevelLabel = _getFinalWaterLevelLabel();
+
+    if (title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Judul laporan wajib diisi')),
       );
       return;
     }
 
-    if (descriptionController.text.trim().isEmpty) {
+    if (description.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Deskripsi kejadian wajib diisi')),
+      );
+      return;
+    }
+
+    if (finalWaterLevelCm == null || finalWaterLevelCm <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tinggi air wajib dipilih atau diisi')),
       );
       return;
     }
@@ -60,12 +104,19 @@ class _ReportDetailViewState extends State<ReportDetailView> {
       MaterialPageRoute(
         builder: (_) => ReportLocationView(
           imagePath: widget.imagePath,
-          title: titleController.text.trim(),
-          description: descriptionController.text.trim(),
-          waterLevel: selectedWaterLevel,
-          manualWaterLevel: manualWaterLevelController.text.trim().isEmpty
-              ? null
-              : manualWaterLevelController.text.trim(),
+          title: title,
+          description: description,
+
+          // Tetap kirim label untuk kebutuhan UI/status.
+          waterLevel: finalWaterLevelLabel,
+
+          // Kirim angka final yang sudah aman:
+          // <30    -> 29
+          // 30-80  -> 55
+          // 80-150 -> 115
+          // >150   -> 151
+          // manual -> sesuai input user
+          manualWaterLevel: finalWaterLevelCm.toString(),
         ),
       ),
     );
@@ -191,7 +242,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha :0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -277,6 +328,7 @@ class _ReportDetailViewState extends State<ReportDetailView> {
       onTap: () {
         setState(() {
           selectedWaterLevel = value;
+          manualWaterLevelController.clear();
         });
       },
       child: Container(
@@ -285,7 +337,9 @@ class _ReportDetailViewState extends State<ReportDetailView> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(3),
           border: Border.all(
-            color: isSelected ? const Color(0xFFFF6A00) : const Color(0xFFE1E8EF),
+            color: isSelected
+                ? const Color(0xFFFF6A00)
+                : const Color(0xFFE1E8EF),
             width: isSelected ? 1.8 : 1.2,
           ),
         ),
@@ -307,6 +361,8 @@ class _ReportDetailViewState extends State<ReportDetailView> {
   }
 
   Widget waterLevelSection() {
+    final bool isManualSelected = selectedWaterLevel == 'manual';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -373,9 +429,11 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(3),
-                      borderSide: const BorderSide(
-                        color: Color(0xFFE1E8EF),
-                        width: 1.2,
+                      borderSide: BorderSide(
+                        color: isManualSelected
+                            ? const Color(0xFFFF6A00)
+                            : const Color(0xFFE1E8EF),
+                        width: isManualSelected ? 1.6 : 1.2,
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
@@ -390,6 +448,13 @@ class _ReportDetailViewState extends State<ReportDetailView> {
                     setState(() {
                       selectedWaterLevel = 'manual';
                     });
+                  },
+                  onChanged: (value) {
+                    if (selectedWaterLevel != 'manual') {
+                      setState(() {
+                        selectedWaterLevel = 'manual';
+                      });
+                    }
                   },
                 ),
               ),

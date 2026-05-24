@@ -419,9 +419,30 @@ class AuthService {
 
     throw Exception(_extractErrorMessage(data));
   }
-    Future<Map<String, dynamic>> resetPassword({
+      Future<Map<String, dynamic>> verifyOtp({
       required String email,
       required String otp,
+    }) async {
+      final response = await http.post(
+        Uri.parse('$baseUrl/verify-otp'),
+        headers: _jsonHeaders(),
+        body: jsonEncode({
+          'email': email.trim(),
+          'otp': otp.trim(),
+        }),
+      );
+
+      final data = _decodeResponse(response);
+
+      if (response.statusCode == 200) {
+        return data;
+      }
+
+      throw Exception(_extractErrorMessage(data));
+    }
+
+    Future<Map<String, dynamic>> resetPassword({
+      required String email,
       required String password,
       required String passwordConfirmation,
     }) async {
@@ -429,8 +450,7 @@ class AuthService {
         Uri.parse('$baseUrl/reset-password'),
         headers: _jsonHeaders(),
         body: jsonEncode({
-          'email': email,
-          'otp': otp,
+          'email': email.trim(),
           'password': password,
           'password_confirmation': passwordConfirmation,
         }),
