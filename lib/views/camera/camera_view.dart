@@ -3,8 +3,7 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:floodcare_mobile/views/camera/report_photo_preview_view.dart';
-// import 'package:flutter/services.dart';
-// import 'package:path_provider/path_provider.dart';
+
 
 
 class CameraView extends StatefulWidget {
@@ -133,40 +132,7 @@ class _CameraViewState extends State<CameraView>
         }
       }
     }
-    // Future<void> useDummyPhoto() async {
-    //   try {
-    //     final byteData = await rootBundle.load(
-    //       'assets/images/donasi3.png',
-    //     );
-
-    //     final tempDir = await getTemporaryDirectory();
-    //     final file = File('${tempDir.path}/donasi3.png');
-
-    //     await file.writeAsBytes(
-    //       byteData.buffer.asUint8List(),
-    //       flush: true,
-    //     );
-
-    //     if (!mounted) return;
-
-    //     Navigator.push(
-    //       context,
-    //       MaterialPageRoute(
-    //         builder: (_) => ReportPhotoPreviewView(
-    //           imagePath: file.path,
-    //         ),
-    //       ),
-    //     );
-    //   } catch (e) {
-    //     if (!mounted) return;
-
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       SnackBar(
-    //         content: Text('Gagal membuka foto dummy: $e'),
-    //       ),
-    //     );
-    //   }
-    // }
+   
   @override
   void dispose() {
     cameraController?.dispose();
@@ -346,77 +312,45 @@ class _CameraViewState extends State<CameraView>
   }
 
   Widget bottomControls() {
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: Container(
-        height: 108,
-        color: const Color(0xFFE8E8E8),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 34),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                controlSmallButton(
-                  icon: Icons.camera_alt_outlined,
-                  onTap: () {},
+  return Positioned(
+    left: 0,
+    right: 0,
+    bottom: 0,
+    child: Container(
+      height: 108,
+      color: const Color(0xFFE8E8E8),
+      child: SafeArea(
+        top: false,
+        child: Center(
+          child: GestureDetector(
+            onTap: isTakingPicture ? null : takePicture,
+            child: Container(
+              width: 68,
+              height: 68,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+                border: Border.all(
+                  color: const Color(0xFFD9D9D9),
+                  width: 4,
                 ),
-                GestureDetector(
-                  onTap: takePicture,
-                  child: Container(
-                    width: 68,
-                    height: 68,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                      border: Border.all(
-                        color: const Color(0xFFD9D9D9),
-                        width: 4,
+              ),
+              child: isTakingPicture
+                  ? const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        color: Colors.black54,
                       ),
-                    ),
-                    child: isTakingPicture
-                        ? const Padding(
-                            padding: EdgeInsets.all(16),
-                            child: CircularProgressIndicator(
-                              strokeWidth: 3,
-                              color: Colors.black54,
-                            ),
-                          )
-                        : null,
-                  ),
-                ),
-                controlSmallButton(
-                  icon: Icons.mail_outline_rounded,
-                  onTap: () {},
-                ),
-              ],
+                    )
+                  : null,
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget controlSmallButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: const BoxDecoration(
-          color: Color(0xFF2F2F2F),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: Colors.white, size: 20),
-      ),
-    );
-  }
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {

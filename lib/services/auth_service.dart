@@ -201,6 +201,7 @@ class AuthService {
     if (response.statusCode == 200 || response.statusCode == 201) {
       if (data['token'] != null) {
         await _saveToken(data['token']);
+        await updateFcmToken();
       }
 
       return data;

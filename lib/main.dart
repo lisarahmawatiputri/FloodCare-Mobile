@@ -17,19 +17,19 @@ const String floodHighChannelId = 'flood_high_channel';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  print('=== FLOODCARE MAIN JALAN ===');
+  debugPrint('=== FLOODCARE MAIN JALAN ===');
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  print('=== FIREBASE BERHASIL INIT ===');
+  debugPrint('=== FIREBASE BERHASIL INIT ===');
 
   await initNotification();
   await initLocalNotification();
   await getFCMToken();
 
-  print('=== SEMUA INIT SELESAI ===');
+  debugPrint('=== SEMUA INIT SELESAI ===');
 
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     debugPrint('=== NOTIF MASUK FOREGROUND ===');

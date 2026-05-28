@@ -40,6 +40,10 @@ class _EdukasiViewState extends State<EdukasiView> {
     );
   }
 
+  Future<void> _refreshData() async {
+    await Future.sync(() => viewModel.loadData());
+  }
+
   Future<void> _openArticle(EdukasiArticle article) async {
     final message = await viewModel.openArticle(article);
 
@@ -115,94 +119,99 @@ class _EdukasiViewState extends State<EdukasiView> {
         return Scaffold(
           backgroundColor: const Color(0xFFF8FAFC),
           body: SafeArea(
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 18, 16, 110),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _searchBox(),
+            child: RefreshIndicator(
+              color: const Color(0xFFFF6A00),
+              onRefresh: _refreshData,
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 110),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _searchBox(),
 
-                  const SizedBox(height: 14),
-
-                  _categoryTabs(),
-
-                  const SizedBox(height: 24),
-
-                  if (viewModel.selectedCategory == 0) ...[
-                    _popularCard(),
-                    const SizedBox(height: 26),
-                  ],
-
-                  if (viewModel.selectedCategory == 0 ||
-                      viewModel.selectedCategory == 1) ...[
-                    _sectionHeader(
-                      title: 'Artikel Terbaru',
-                      showLihatSemua: viewModel.selectedCategory == 0,
-                      onTap: () {
-                        viewModel.showArticlesOnly();
-                        _scrollToTop();
-                      },
-                    ),
                     const SizedBox(height: 14),
-                    if (viewModel.isLoadingArticles)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(20),
-                          child: CircularProgressIndicator(),
-                        ),
-                      )
-                    else if (filteredArticles.isNotEmpty)
-                      ...filteredArticles.map((article) {
-                        return _articleCard(article);
-                      })
-                    else
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        child: Text(
-                          viewModel.articleErrorMessage ??
-                              'Tidak ada artikel ditemukan.',
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                      ),
-                    const SizedBox(height: 20),
-                  ],
 
-                  if (viewModel.selectedCategory == 0 ||
-                      viewModel.selectedCategory == 2) ...[
-                    _sectionHeader(
-                      title: 'Video Terbaru',
-                      showLihatSemua: viewModel.selectedCategory == 0,
-                      onTap: () {
-                        viewModel.showVideosOnly();
-                        _scrollToTop();
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    if (viewModel.isLoadingVideos)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(20),
-                          child: CircularProgressIndicator(),
-                        ),
-                      )
-                    else if (filteredVideos.isNotEmpty)
-                      ...filteredVideos.map((video) {
-                        return _videoCard(video);
-                      })
-                    else
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        child: Text(
-                          viewModel.videoErrorMessage ??
-                              (viewModel.searchQuery.isNotEmpty
-                                  ? 'Tidak ada video ditemukan.'
-                                  : 'Belum ada video tersedia.'),
-                          style: const TextStyle(color: Colors.grey),
-                        ),
+                    _categoryTabs(),
+
+                    const SizedBox(height: 24),
+
+                    if (viewModel.selectedCategory == 0) ...[
+                      _popularCard(),
+                      const SizedBox(height: 26),
+                    ],
+
+                    if (viewModel.selectedCategory == 0 ||
+                        viewModel.selectedCategory == 1) ...[
+                      _sectionHeader(
+                        title: 'Artikel Terbaru',
+                        showLihatSemua: viewModel.selectedCategory == 0,
+                        onTap: () {
+                          viewModel.showArticlesOnly();
+                          _scrollToTop();
+                        },
                       ),
+                      const SizedBox(height: 14),
+                      if (viewModel.isLoadingArticles)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      else if (filteredArticles.isNotEmpty)
+                        ...filteredArticles.map((article) {
+                          return _articleCard(article);
+                        })
+                      else
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          child: Text(
+                            viewModel.articleErrorMessage ??
+                                'Tidak ada artikel ditemukan.',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                      const SizedBox(height: 20),
+                    ],
+
+                    if (viewModel.selectedCategory == 0 ||
+                        viewModel.selectedCategory == 2) ...[
+                      _sectionHeader(
+                        title: 'Video Terbaru',
+                        showLihatSemua: viewModel.selectedCategory == 0,
+                        onTap: () {
+                          viewModel.showVideosOnly();
+                          _scrollToTop();
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      if (viewModel.isLoadingVideos)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      else if (filteredVideos.isNotEmpty)
+                        ...filteredVideos.map((video) {
+                          return _videoCard(video);
+                        })
+                      else
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          child: Text(
+                            viewModel.videoErrorMessage ??
+                                (viewModel.searchQuery.isNotEmpty
+                                    ? 'Tidak ada video ditemukan.'
+                                    : 'Belum ada video tersedia.'),
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
@@ -293,7 +302,7 @@ class _EdukasiViewState extends State<EdukasiView> {
         color: Colors.black,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 14,
             offset: const Offset(0, 6),
           ),
@@ -424,7 +433,7 @@ class _EdukasiViewState extends State<EdukasiView> {
           borderRadius: BorderRadius.circular(9),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha:0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -545,7 +554,7 @@ class _EdukasiViewState extends State<EdukasiView> {
           borderRadius: BorderRadius.circular(9),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha:0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -563,7 +572,7 @@ class _EdukasiViewState extends State<EdukasiView> {
                   height: 170,
                 ),
                 Positioned.fill(
-                  child: Container(color: Colors.black.withValues(alpha:0.18)),
+                  child: Container(color: Colors.black.withValues(alpha: 0.18)),
                 ),
                 Positioned.fill(
                   child: Center(
@@ -571,7 +580,7 @@ class _EdukasiViewState extends State<EdukasiView> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha:0.75),
+                        color: Colors.white.withValues(alpha: 0.75),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
@@ -591,7 +600,7 @@ class _EdukasiViewState extends State<EdukasiView> {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha:0.65),
+                      color: Colors.black.withValues(alpha: 0.65),
                       borderRadius: BorderRadius.circular(5),
                     ),
                     child: Text(

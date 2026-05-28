@@ -605,17 +605,7 @@ int? parseWaterLevelCm() {
             ),
           ),
           const SizedBox(width: 8),
-          GestureDetector(
-            onTap: getCurrentLocation,
-            child: const Text(
-              'Ubah',
-              style: TextStyle(
-                fontFamily: 'interbold',
-                fontSize: 13,
-                color: Color(0xFFC75B23),
-              ),
-            ),
-          ),
+        
         ],
       ),
     );

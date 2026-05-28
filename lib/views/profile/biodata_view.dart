@@ -1,8 +1,9 @@
 import 'dart:io';
+
 import 'package:floodcare_mobile/services/auth_service.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:flutter/material.dart';
 import 'package:floodcare_mobile/utils/colors.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class BiodataView extends StatefulWidget {
   final Map<String, dynamic> initialUser;
@@ -26,7 +27,6 @@ class _BiodataViewState extends State<BiodataView> {
   late final TextEditingController nameController;
   late final TextEditingController emailController;
   late final TextEditingController phoneController;
-  late final TextEditingController addressController;
 
   bool isSaving = false;
 
@@ -54,13 +54,6 @@ class _BiodataViewState extends State<BiodataView> {
         ['no_telepon', 'phone', 'phone_number', 'telepon'],
       ),
     );
-
-    addressController = TextEditingController(
-      text: _readString(
-        widget.initialUser,
-        ['alamat', 'address'],
-      ),
-    );
   }
 
   @override
@@ -68,7 +61,6 @@ class _BiodataViewState extends State<BiodataView> {
     nameController.dispose();
     emailController.dispose();
     phoneController.dispose();
-    addressController.dispose();
     super.dispose();
   }
 
@@ -87,6 +79,7 @@ class _BiodataViewState extends State<BiodataView> {
 
     return fallback;
   }
+
   String? get photoUrl {
     if (updatedPhotoUrl != null && updatedPhotoUrl!.isNotEmpty) {
       return updatedPhotoUrl;
@@ -107,61 +100,61 @@ class _BiodataViewState extends State<BiodataView> {
   }
 
   Future<void> handleChangePhoto() async {
-  if (isSaving) return;
+    if (isSaving) return;
 
-  final pickedFile = await imagePicker.pickImage(
-    source: ImageSource.gallery,
-    imageQuality: 80,
-  );
-
-  if (pickedFile == null) {
-    return;
-  }
-
-  final file = File(pickedFile.path);
-
-  setState(() {
-    selectedPhoto = file;
-    isSaving = true;
-  });
-
-  try {
-    final response = await authService.updateProfilePhoto(
-      photo: file,
+    final pickedFile = await imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
     );
 
-    final user = response['user'];
+    if (pickedFile == null) {
+      return;
+    }
 
-    if (!mounted) return;
-
-    setState(() {
-      isSaving = false;
-      updatedPhotoUrl = user is Map<String, dynamic>
-          ? (user['foto_profil_url'] ?? user['foto_profil'])?.toString()
-          : null;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Foto profil berhasil diperbarui'),
-      ),
-    );
-  } catch (e) {
-    if (!mounted) return;
+    final file = File(pickedFile.path);
 
     setState(() {
-      isSaving = false;
+      selectedPhoto = file;
+      isSaving = true;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          e.toString().replaceFirst('Exception: ', ''),
+    try {
+      final response = await authService.updateProfilePhoto(
+        photo: file,
+      );
+
+      final user = response['user'];
+
+      if (!mounted) return;
+
+      setState(() {
+        isSaving = false;
+        updatedPhotoUrl = user is Map<String, dynamic>
+            ? (user['foto_profil_url'] ?? user['foto_profil'])?.toString()
+            : null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Foto profil berhasil diperbarui'),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isSaving = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    }
   }
-}
 
   Future<void> handleSave() async {
     if (isSaving) return;
@@ -169,7 +162,6 @@ class _BiodataViewState extends State<BiodataView> {
     final name = nameController.text.trim();
     final email = emailController.text.trim();
     final phone = phoneController.text.trim();
-    final address = addressController.text.trim();
 
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -195,28 +187,37 @@ class _BiodataViewState extends State<BiodataView> {
 
     try {
       await authService.updateProfile(
-    namaLengkap: name,
-    noTelepon: phone.isEmpty ? null : phone,
-    alamat: address.isEmpty ? null : address,
-  );
+        namaLengkap: name,
+        noTelepon: phone.isEmpty ? null : phone,
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Biodata berhasil disimpan')),
-  );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Biodata berhasil disimpan'),
+        ),
+      );
 
-  Navigator.pop(context);
-} catch (e) {
-  if (!mounted) return;
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-  );
-  } finally {
-  if (mounted) setState(() => isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSaving = false;
+        });
+      }
+    }
   }
-}
 
   Widget profilePhoto() {
     final hasPhoto = photoUrl != null && photoUrl!.isNotEmpty;
@@ -238,22 +239,22 @@ class _BiodataViewState extends State<BiodataView> {
               ),
             ],
           ),
-         child: ClipOval(
-          child: selectedPhoto != null
-              ? Image.file(
-                  selectedPhoto!,
-                  fit: BoxFit.cover,
-                )
-              : hasPhoto
-                  ? Image.network(
-                      photoUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const _OrangeAvatar();
-                      },
-                    )
-                  : const _OrangeAvatar(),
-        ),
+          child: ClipOval(
+            child: selectedPhoto != null
+                ? Image.file(
+                    selectedPhoto!,
+                    fit: BoxFit.cover,
+                  )
+                : hasPhoto
+                    ? Image.network(
+                        photoUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const _OrangeAvatar();
+                        },
+                      )
+                    : const _OrangeAvatar(),
+          ),
         ),
         const SizedBox(height: 12),
         GestureDetector(
@@ -413,24 +414,18 @@ class _BiodataViewState extends State<BiodataView> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 32),
-
               Center(
                 child: profilePhoto(),
               ),
-
               const SizedBox(height: 28),
-
               inputField(
                 label: 'Nama Lengkap',
                 controller: nameController,
                 icon: Icons.person_outline,
                 hint: 'Masukkan nama lengkap',
               ),
-
               const SizedBox(height: 18),
-
               inputField(
                 label: 'Email',
                 controller: emailController,
@@ -439,9 +434,7 @@ class _BiodataViewState extends State<BiodataView> {
                 keyboardType: TextInputType.emailAddress,
                 readOnly: true,
               ),
-
               const SizedBox(height: 18),
-
               inputField(
                 label: 'No. Telepon',
                 controller: phoneController,
@@ -449,18 +442,7 @@ class _BiodataViewState extends State<BiodataView> {
                 hint: 'Masukkan nomor telepon',
                 keyboardType: TextInputType.phone,
               ),
-
-              const SizedBox(height: 18),
-
-              inputField(
-                label: 'Alamat',
-                controller: addressController,
-                icon: Icons.location_on_outlined,
-                hint: 'Masukkan alamat',
-              ),
-
               const SizedBox(height: 32),
-
               saveButton(),
             ],
           ),
